@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import TopBar from "./components/TopBar";
 import StepsBar from "./components/StepsBar";
 import SuccessScreen from "./components/SuccessScreen";
