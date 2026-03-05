@@ -1,0 +1,49 @@
+import type { FormState, FormPayload } from "../types/form";
+
+const SHEET_URL =
+  "https://script.google.com/macros/s/AKfycbyM3oRLzT4WAmew_udmj8YtWEdxYebOVRUSxFL8HWklXmLRIjXZJuDukW6nJhKKaN6f/exec";
+
+export async function submitApplication(state: FormState): Promise<string> {
+  const refNo = "US-" + Date.now();
+
+  const payload: FormPayload = {
+    refNo,
+    firstName: state.firstName,
+    lastName: state.lastName,
+    email: state.email,
+    phone: state.phone,
+    address: state.address,
+    position1: state.position1,
+    position2: state.position2,
+    position3: state.position3,
+    employmentType: state.employmentType,
+    workSetup: state.workSetup.join(", "),
+    workSchedule: state.workSchedule.join(", "),
+    educationLevel: state.educationLevel,
+    school: state.school,
+    course: state.course,
+    skillsList: state.skills.join(", "),
+    tools: state.tools.join(", "),
+    otherTools: state.otherTools,
+    slot1Date: state.slot1Date,
+    slot1Time: state.slot1Time,
+    slot2Date: state.slot2Date,
+    slot2Time: state.slot2Time,
+    slot3Date: state.slot3Date,
+    slot3Time: state.slot3Time,
+    referralSource: state.referralSource.join(", "),
+    referralCode: state.referralCode,
+    resumeLink: state.resumeLink,
+    portfolioLink: state.portfolioLink,
+    videoLink: state.videoLink,
+  };
+
+  await fetch(SHEET_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  return refNo;
+}
