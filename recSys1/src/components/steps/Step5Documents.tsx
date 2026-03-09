@@ -1,4 +1,5 @@
 import React from "react";
+import { FolderOpen, ImageIcon, Video, Link } from "lucide-react";
 import type { FormState } from "../../types/form";
 
 interface Props {
@@ -18,7 +19,9 @@ const Step5Documents: React.FC<Props> = ({ state, errors, onChange }) => (
     {/* Resume */}
     <div className="doc-link-card">
       <div className="doc-link-header">
-        <span className="doc-link-icon">📁</span>
+        <span className="doc-link-icon">
+          <FolderOpen size={20} />
+        </span>
         <div>
           <div className="doc-link-title">
             Resume / CV &amp; Certificates{" "}
@@ -88,7 +91,9 @@ const Step5Documents: React.FC<Props> = ({ state, errors, onChange }) => (
           Shared Folder Link <span className="req">*</span>
         </label>
         <div className="link-input-wrap">
-          <span className="link-icon">🔗</span>
+          <span className="link-icon">
+            <Link size={15} />
+          </span>
           <input
             type="url"
             placeholder="https://drive.google.com/drive/folders/..."
@@ -106,7 +111,9 @@ const Step5Documents: React.FC<Props> = ({ state, errors, onChange }) => (
     {/* Portfolio */}
     <div className="doc-link-card">
       <div className="doc-link-header">
-        <span className="doc-link-icon">🖼</span>
+        <span className="doc-link-icon">
+          <ImageIcon size={20} />
+        </span>
         <div>
           <div className="doc-link-title">Portfolio / Work Samples</div>
           <div className="doc-link-desc">
@@ -117,7 +124,9 @@ const Step5Documents: React.FC<Props> = ({ state, errors, onChange }) => (
       </div>
       <div className="field">
         <div className="link-input-wrap">
-          <span className="link-icon">🔗</span>
+          <span className="link-icon">
+            <Link size={15} />
+          </span>
           <input
             type="url"
             placeholder="https://behance.net/yourprofile or GitHub link"
@@ -131,7 +140,9 @@ const Step5Documents: React.FC<Props> = ({ state, errors, onChange }) => (
     {/* Video */}
     <div className="doc-link-card">
       <div className="doc-link-header">
-        <span className="doc-link-icon">🎥</span>
+        <span className="doc-link-icon">
+          <Video size={20} />
+        </span>
         <div>
           <div className="doc-link-title">Video Introduction</div>
           <div className="doc-link-desc">
@@ -143,7 +154,9 @@ const Step5Documents: React.FC<Props> = ({ state, errors, onChange }) => (
       </div>
       <div className="field">
         <div className="link-input-wrap">
-          <span className="link-icon">🔗</span>
+          <span className="link-icon">
+            <Link size={15} />
+          </span>
           <input
             type="url"
             placeholder="https://youtube.com/... or Drive link"

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { GraduationCap, Wrench, MonitorSmartphone } from "lucide-react";
 import type { FormState } from "../../types/form";
 
 const TOOLS = [
@@ -53,7 +54,17 @@ const Step3Experience: React.FC<Props> = ({
         background.
       </div>
 
-      <div className="sub-heading">🎓 Education</div>
+      <div className="sub-heading">
+        <GraduationCap
+          size={16}
+          style={{
+            display: "inline",
+            marginRight: 6,
+            verticalAlign: "text-bottom",
+          }}
+        />
+        Education
+      </div>
       <div className="sub-desc">Your highest educational attainment.</div>
       <div className="grid-2" style={{ marginBottom: 26 }}>
         <div className="field">
@@ -92,7 +103,17 @@ const Step3Experience: React.FC<Props> = ({
 
       <div className="divider" />
 
-      <div className="sub-heading">🛠 Skills</div>
+      <div className="sub-heading">
+        <Wrench
+          size={16}
+          style={{
+            display: "inline",
+            marginRight: 6,
+            verticalAlign: "text-bottom",
+          }}
+        />
+        Skills
+      </div>
       <div className="sub-desc">
         Type a skill and press <strong>Enter</strong> or <strong>,</strong> to
         add it as a tag.
@@ -135,7 +156,17 @@ const Step3Experience: React.FC<Props> = ({
 
       <div className="divider" />
 
-      <div className="sub-heading">💻 Tools & Software</div>
+      <div className="sub-heading">
+        <MonitorSmartphone
+          size={16}
+          style={{
+            display: "inline",
+            marginRight: 6,
+            verticalAlign: "text-bottom",
+          }}
+        />
+        Tools & Software
+      </div>
       <div className="sub-desc">Select the tools you are proficient with.</div>
       <div className="field" style={{ marginBottom: 4 }}>
         <label>Commonly Used Tools</label>

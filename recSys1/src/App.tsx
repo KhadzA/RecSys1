@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TopBar from "./components/TopBar";
 import StepsBar from "./components/StepsBar";
 import SuccessScreen from "./components/SuccessScreen";
@@ -29,6 +29,11 @@ function App() {
   const [submitting, setSubmitting] = useState(false);
   const [refNo, setRefNo] = useState("");
   const [done, setDone] = useState(false);
+
+  // Apply dark class to <html> so CSS variables cascade across the entire page
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
 
   const onChange = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -109,7 +114,7 @@ function App() {
   };
 
   return (
-    <div className={dark ? "dark" : ""} style={{ minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh" }}>
       <div className="glow" />
       <div className="glow2" />
       <TopBar dark={dark} onToggleDark={() => setDark(!dark)} />

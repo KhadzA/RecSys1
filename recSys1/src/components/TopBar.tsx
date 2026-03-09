@@ -17,9 +17,9 @@ const TopBar: React.FC<TopBarProps> = ({ dark, onToggleDark }) => (
     }}
   >
     <img
-      src="/upstaff-logo.png"
+      src="/upstaff-logo.svg"
       alt="UpStaff logo"
-      style={{ height: "5rem", width: "auto", display: "block" }}
+      style={{ height: "2.5rem", width: "auto", display: "block" }}
       onError={(e) =>
         ((e.currentTarget as HTMLImageElement).style.display = "none")
       }
@@ -28,7 +28,7 @@ const TopBar: React.FC<TopBarProps> = ({ dark, onToggleDark }) => (
       style={{
         fontFamily: '"Google Sans Flex", sans-serif',
         fontWeight: 800,
-        fontSize: 22,
+        fontSize: 26,
         letterSpacing: -0.3,
         color: "#ffffff",
         marginLeft: 10,
