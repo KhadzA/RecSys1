@@ -27,7 +27,6 @@ function App() {
     Partial<Record<keyof FormState, string>>
   >({});
   const [submitting, setSubmitting] = useState(false);
-  const [refNo, setRefNo] = useState("");
   const [done, setDone] = useState(false);
 
   // Apply dark class to <html> so CSS variables cascade across the entire page
@@ -93,8 +92,7 @@ function App() {
     } else {
       setSubmitting(true);
       try {
-        const ref = await submitApplication(form);
-        setRefNo(ref);
+        await submitApplication(form);
         setDone(true);
       } catch {
         alert(
@@ -121,7 +119,7 @@ function App() {
 
       <div className="wrapper">
         {done ? (
-          <SuccessScreen refNo={refNo} />
+          <SuccessScreen />
         ) : (
           <>
             <div className="page-title">

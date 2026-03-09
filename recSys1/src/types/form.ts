@@ -1,5 +1,4 @@
 export interface FormPayload {
-  refNo: string;
   // Personal
   firstName: string;
   lastName: string;

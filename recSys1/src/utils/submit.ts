@@ -3,11 +3,8 @@ import type { FormState, FormPayload } from "../types/form";
 const SHEET_URL =
   "https://script.google.com/macros/s/AKfycbyM3oRLzT4WAmew_udmj8YtWEdxYebOVRUSxFL8HWklXmLRIjXZJuDukW6nJhKKaN6f/exec";
 
-export async function submitApplication(state: FormState): Promise<string> {
-  const refNo = "US-" + Date.now();
-
+export async function submitApplication(state: FormState): Promise<void> {
   const payload: FormPayload = {
-    refNo,
     firstName: state.firstName,
     lastName: state.lastName,
     email: state.email,
@@ -44,6 +41,4 @@ export async function submitApplication(state: FormState): Promise<string> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-
-  return refNo;
 }
