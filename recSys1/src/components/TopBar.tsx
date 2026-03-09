@@ -1,4 +1,5 @@
 import React from "react";
+import { Sun, Moon } from "lucide-react";
 
 interface TopBarProps {
   dark: boolean;
@@ -45,7 +46,9 @@ const TopBar: React.FC<TopBarProps> = ({ dark, onToggleDark }) => (
       }}
     >
       <button className="dm-toggle" onClick={onToggleDark}>
-        <span className="dm-icon">{dark ? "☀️" : "🌙"}</span>
+        <span className="dm-icon">
+          {dark ? <Sun size={18} /> : <Moon size={18} />}
+        </span>
         <span>{dark ? "Light" : "Dark"}</span>
       </button>
     </div>
