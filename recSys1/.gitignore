@@ -28,9 +28,3 @@ dist-ssr
 
 .env
 .env.local
-
-src/pages/admin/addJobs.tsx
-src/pages/admin/dashboard.tsx
-src/auth/Login.tsx
-src/main.tsx
-src/components/ProtectedRoute.tsx

@@ -1,0 +1,11 @@
+// src/components/ProtectedRoute.tsx
+import { Navigate } from "react-router-dom";
+import { isLoggedIn } from "../utils/auth";
+
+export default function ProtectedRoute({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return isLoggedIn() ? <>{children}</> : <Navigate to="/auth/login" replace />;
+}
