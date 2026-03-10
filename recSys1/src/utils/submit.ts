@@ -40,6 +40,8 @@ export async function submitApplication(state: FormState): Promise<void> {
   //   body: JSON.stringify(payload),
   // });
 
+  //
+
   await fetch(SHEET_URL, {
     method: "POST",
     mode: "no-cors", // fire-and-forget, no preflight
