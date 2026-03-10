@@ -6,7 +6,7 @@ const SuccessScreen: React.FC = () => (
       <div className="success-icon">✓</div>
       <div className="success-title">Application Submitted!</div>
       <div className="success-sub">
-        Thank you for applying to UpStaff.
+        Thank you for applying to UpStaff!
         <br />
         Our HR team will review your application and confirm your interview
         schedule within 2–3 business days.
