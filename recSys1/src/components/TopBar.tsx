@@ -18,7 +18,15 @@ const TopBar: React.FC<TopBarProps> = ({ dark, onToggleDark }) => (
       zIndex: 10,
     }}
   >
-    <img src={logo} alt="Upstaff" className="login-logo" />
+    <img
+      src={logo}
+      alt="Upstaff"
+      className="login-logo"
+      style={{ height: "2.5rem", width: "auto", display: "block" }}
+      onError={(e) =>
+        ((e.currentTarget as HTMLImageElement).style.display = "none")
+      }
+    />
 
     <span
       style={{
