@@ -1,6 +1,6 @@
 import React from "react";
 import { Sun, Moon } from "lucide-react";
-import logo from "./assets/Logo-NavBar.svg";
+import logo from "./assets/Logo.svg";
 
 interface TopBarProps {
   dark: boolean;
@@ -18,7 +18,7 @@ const TopBar: React.FC<TopBarProps> = ({ dark, onToggleDark }) => (
       zIndex: 10,
     }}
   >
-    <img src={logo} alt="Upstaff" className="landing-logo" />
+    <img src={logo} alt="Upstaff" className="login-logo" />
 
     <span
       style={{
