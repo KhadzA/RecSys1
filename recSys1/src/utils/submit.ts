@@ -1,7 +1,6 @@
 import type { FormState, FormPayload } from "../types/form";
 
-const SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbyM3oRLzT4WAmew_udmj8YtWEdxYebOVRUSxFL8HWklXmLRIjXZJuDukW6nJhKKaN6f/exec";
+const SHEET_URL = import.meta.env.VITE_SHEET_URL as string;
 
 export async function submitApplication(state: FormState): Promise<void> {
   const payload: FormPayload = {
