@@ -1,23 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { FormState } from "../../types/form";
-
-const POSITIONS = [
-  "Accountant",
-  "Bookkeeper",
-  "Administrative Assistant",
-  "Customer Service Representative",
-  "Graphic Designer",
-  "Recruitment Officer",
-  "Ecommerce VA",
-  "Google Advertising Specialist",
-  "Meta Advertising Specialist",
-  "General Ledger Accountant",
-  "Data Entry Specialist",
-  "Admin Support",
-  "Video Editor",
-  "BackEnd Web Developer",
-  "Patient Care Admin Associate",
-];
+import { fetchJobs } from "../../utils/auth";
 
 const WORK_SETUPS = ["On-site", "Remote", "Hybrid"];
 const SCHEDULES = [
@@ -41,12 +24,50 @@ const Step2Position: React.FC<Props> = ({
   onChange,
   onToggleArray,
 }) => {
+  const [positions, setPositions] = useState<string[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+
+  useEffect(() => {
+    fetchJobs()
+      .then((jobs) =>
+        setPositions(jobs.filter((j) => j.active).map((j) => j.title)),
+      )
+      .catch(() => setPositions([]))
+      .finally(() => setLoadingJobs(false));
+  }, []);
+
   const hasDuplicate = () => {
     const vals = [state.position1, state.position2, state.position3].filter(
       Boolean,
     );
     return vals.length !== new Set(vals).size;
   };
+
+  const positionSelect = (
+    field: keyof FormState,
+    value: string,
+    error?: string,
+  ) => (
+    <div className="field">
+      <label>
+        Position {field === "position1" && <span className="req">*</span>}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(field, e.target.value)}
+        className={error ? "input-error" : ""}
+        disabled={loadingJobs}
+      >
+        <option value="">
+          {loadingJobs ? "Loading positions…" : "Select a position"}
+        </option>
+        {positions.map((p) => (
+          <option key={p}>{p}</option>
+        ))}
+      </select>
+      {error && <div className="field-error">{error}</div>}
+    </div>
+  );
 
   return (
     <div className="step-section active">
@@ -69,24 +90,7 @@ const Step2Position: React.FC<Props> = ({
           <div className="priority-note">Most preferred</div>
         </div>
         <div className="grid-2">
-          <div className="field">
-            <label>
-              Position <span className="req">*</span>
-            </label>
-            <select
-              value={state.position1}
-              onChange={(e) => onChange("position1", e.target.value)}
-              className={errors.position1 ? "input-error" : ""}
-            >
-              <option value="">Select a position</option>
-              {POSITIONS.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </select>
-            {errors.position1 && (
-              <div className="field-error">{errors.position1}</div>
-            )}
-          </div>
+          {positionSelect("position1", state.position1, errors.position1)}
           <div className="field">
             <label>
               Employment Type <span className="req">*</span>
@@ -112,18 +116,7 @@ const Step2Position: React.FC<Props> = ({
           <div className="priority-label">2nd Choice Position</div>
           <div className="priority-note">Optional</div>
         </div>
-        <div className="field">
-          <label>Position</label>
-          <select
-            value={state.position2}
-            onChange={(e) => onChange("position2", e.target.value)}
-          >
-            <option value="">Select a position</option>
-            {POSITIONS.map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-        </div>
+        {positionSelect("position2", state.position2)}
       </div>
 
       {/* 3rd Choice */}
@@ -133,18 +126,7 @@ const Step2Position: React.FC<Props> = ({
           <div className="priority-label">3rd Choice Position</div>
           <div className="priority-note">Optional</div>
         </div>
-        <div className="field">
-          <label>Position</label>
-          <select
-            value={state.position3}
-            onChange={(e) => onChange("position3", e.target.value)}
-          >
-            <option value="">Select a position</option>
-            {POSITIONS.map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-        </div>
+        {positionSelect("position3", state.position3)}
       </div>
 
       {hasDuplicate() && (

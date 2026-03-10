@@ -1,7 +1,7 @@
 const SHEET_URL = import.meta.env.VITE_SHEET_URL as string;
 const TOKEN_KEY = "upstaff_token";
 
-// ── Helper: all requests use POST + text/plain to avoid CORS preflight ──────
+// ── Core POST helper — text/plain avoids CORS preflight ──────────────────────
 async function gasPost<T>(body: object): Promise<T> {
   const res = await fetch(SHEET_URL, {
     method: "POST",
@@ -18,7 +18,7 @@ async function gasPost<T>(body: object): Promise<T> {
   return data as T;
 }
 
-// ── Login ────────────────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────────────
 export async function loginAdmin(
   email: string,
   password: string,
@@ -31,7 +31,6 @@ export async function loginAdmin(
   sessionStorage.setItem(TOKEN_KEY, data.token);
 }
 
-// ── Session helpers ──────────────────────────────────────────────────────────
 export function getToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY);
 }
@@ -44,7 +43,7 @@ export function logout(): void {
   sessionStorage.removeItem(TOKEN_KEY);
 }
 
-// ── Fetch applications ───────────────────────────────────────────────────────
+// ── Applications ──────────────────────────────────────────────────────────────
 export async function fetchApplications(): Promise<Application[]> {
   const token = getToken();
   if (!token) throw new Error("Not logged in");
@@ -57,7 +56,31 @@ export async function fetchApplications(): Promise<Application[]> {
   return data.data;
 }
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Jobs ──────────────────────────────────────────────────────────────────────
+export async function fetchJobs(): Promise<Job[]> {
+  const data = await gasPost<{ result: string; data: Job[] }>({
+    action: "getJobs",
+  });
+  return data.data;
+}
+
+export async function addJob(title: string): Promise<void> {
+  const token = getToken();
+  await gasPost({ action: "addJob", token, title });
+}
+
+export async function toggleJob(index: number): Promise<void> {
+  const token = getToken();
+  await gasPost({ action: "toggleJob", token, index });
+}
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+export interface Job {
+  index: number;
+  title: string;
+  active: boolean;
+}
+
 export interface Application {
   timestamp: string;
   status: string;

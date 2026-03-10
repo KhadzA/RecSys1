@@ -1,0 +1,139 @@
+.admin-body {
+  display: flex;
+  min-height: calc(100vh - 60px); /* minus TopBar height */
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Side nav ───────────────────────────────────────────────────────────── */
+.admin-sidenav {
+  width: 220px;
+  min-height: calc(100vh - 60px);
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 12px 20px;
+  gap: 4px;
+  flex-shrink: 0;
+  transition: width 0.25s ease;
+  position: sticky;
+  top: 60px;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+.admin-sidenav.collapsed {
+  width: 60px;
+}
+
+.sidenav-toggle {
+  align-self: flex-end;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.sidenav-toggle:hover {
+  background: rgba(62, 207, 223, 0.08);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.sidenav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.sidenav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: "DM Sans", sans-serif;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidenav-link:hover {
+  background: rgba(62, 207, 223, 0.07);
+  color: var(--text);
+}
+.sidenav-link.active {
+  background: rgba(62, 207, 223, 0.12);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidenav-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sidenav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidenav-logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: "DM Sans", sans-serif;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
+}
+.sidenav-logout:hover {
+  background: rgba(217, 53, 53, 0.07);
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* ── Main content ───────────────────────────────────────────────────────── */
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .admin-sidenav {
+    width: 60px;
+  }
+  .sidenav-label {
+    display: none;
+  }
+}
