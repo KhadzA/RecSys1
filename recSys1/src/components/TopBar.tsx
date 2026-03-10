@@ -1,5 +1,6 @@
 import React from "react";
 import { Sun, Moon } from "lucide-react";
+import logo from "./assets/Logo-NavBar.svg";
 
 interface TopBarProps {
   dark: boolean;
@@ -17,14 +18,8 @@ const TopBar: React.FC<TopBarProps> = ({ dark, onToggleDark }) => (
       zIndex: 10,
     }}
   >
-    <img
-      src="/src/assets/Logo.svg"
-      alt="UpStaff logo"
-      style={{ height: "2.5rem", width: "auto", display: "block" }}
-      onError={(e) =>
-        ((e.currentTarget as HTMLImageElement).style.display = "none")
-      }
-    />
+    <img src={logo} alt="Upstaff" className="landing-logo" />
+
     <span
       style={{
         fontFamily: '"Google Sans Flex", sans-serif',

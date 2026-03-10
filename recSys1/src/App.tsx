@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import "./LandingPage.css";
+import logo from "./assets/Logo-NavBar.svg";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -14,11 +15,7 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
-          <img
-            src="src/assets/Logo-NavBar.svg"
-            alt="Upstaff"
-            className="landing-logo"
-          />
+          <img src={logo} alt="Upstaff" className="landing-logo" />
           <div className="landing-nav-actions">
             <button
               className="landing-btn-ghost"
