@@ -1,6 +1,6 @@
 import React from "react";
 import { Sun, Moon } from "lucide-react";
-import logo from "./assets/Logo.svg";
+import logo from "../assets/Logo.svg";
 
 interface TopBarProps {
   dark: boolean;
