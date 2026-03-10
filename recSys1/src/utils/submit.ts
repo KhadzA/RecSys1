@@ -34,10 +34,16 @@ export async function submitApplication(state: FormState): Promise<void> {
     videoLink: state.videoLink,
   };
 
+  // await fetch(SHEET_URL, {
+  //   method: "POST",
+  //   headers: { "Content-Type": "application/json" },
+  //   body: JSON.stringify(payload),
+  // });
+
   await fetch(SHEET_URL, {
     method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    mode: "no-cors", // fire-and-forget, no preflight
+    headers: { "Content-Type": "text/plain" }, // consistent with login
+    body: JSON.stringify({ action: "submit", ...payload }),
   });
 }

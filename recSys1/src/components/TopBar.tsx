@@ -18,7 +18,7 @@ const TopBar: React.FC<TopBarProps> = ({ dark, onToggleDark }) => (
     }}
   >
     <img
-      src="../src/assets/Logo.svg"
+      src="/src/assets/Logo.svg"
       alt="UpStaff logo"
       style={{ height: "2.5rem", width: "auto", display: "block" }}
       onError={(e) =>

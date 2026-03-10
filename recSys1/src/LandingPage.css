@@ -1,0 +1,271 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap");
+
+/* ── Root ─────────────────────────────────────────────────────────────── */
+.landing-root {
+  min-height: 100vh;
+  background: #f0f4fa;
+  font-family: "DM Sans", sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Ambient glows ────────────────────────────────────────────────────── */
+.landing-glow {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+.landing-glow-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(
+    circle,
+    rgba(62, 207, 223, 0.18),
+    transparent 70%
+  );
+  top: -160px;
+  right: -120px;
+}
+.landing-glow-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(26, 31, 53, 0.08), transparent 70%);
+  bottom: -100px;
+  left: -80px;
+}
+
+/* ── Subtle grid overlay ──────────────────────────────────────────────── */
+.landing-grid {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(26, 31, 53, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 31, 53, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Navbar ───────────────────────────────────────────────────────────── */
+.landing-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 0 32px;
+  background: rgba(240, 244, 250, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(26, 31, 53, 0.08);
+}
+.landing-nav-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.landing-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+.landing-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.landing-btn-ghost {
+  background: transparent;
+  border: 1.5px solid rgba(26, 31, 53, 0.2);
+  color: #1a1f35;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    color 0.2s;
+}
+.landing-btn-ghost:hover {
+  border-color: #3ecfdf;
+  color: #3ecfdf;
+  background: rgba(62, 207, 223, 0.05);
+}
+
+.landing-btn-primary {
+  background: #1a1f35;
+  border: 1.5px solid #1a1f35;
+  color: #ffffff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
+}
+.landing-btn-primary:hover {
+  background: #3ecfdf;
+  border-color: #3ecfdf;
+  color: #1a1f35;
+  transform: translateY(-1px);
+}
+
+.landing-btn-lg {
+  font-size: 15px;
+  padding: 14px 32px;
+  border-radius: 12px;
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.landing-hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 68px 32px 0;
+}
+.landing-hero-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 80px 0 60px;
+  animation: heroFadeUp 0.7s ease both;
+}
+
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-eyebrow {
+  display: inline-block;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #3ecfdf;
+  background: rgba(62, 207, 223, 0.1);
+  border: 1px solid rgba(62, 207, 223, 0.3);
+  padding: 5px 14px;
+  border-radius: 100px;
+  margin-bottom: 28px;
+  animation: heroFadeUp 0.7s 0.1s ease both;
+}
+
+.landing-headline {
+  font-family: "Syne", sans-serif;
+  font-size: clamp(52px, 7vw, 96px);
+  font-weight: 800;
+  color: #1a1f35;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin: 0 0 24px;
+  animation: heroFadeUp 0.7s 0.18s ease both;
+}
+.landing-headline-accent {
+  color: #3ecfdf;
+}
+
+.landing-sub {
+  font-family: "DM Sans", sans-serif;
+  font-size: clamp(16px, 2vw, 19px);
+  font-weight: 300;
+  color: #4a5068;
+  max-width: 520px;
+  line-height: 1.7;
+  margin: 0 0 44px;
+  animation: heroFadeUp 0.7s 0.26s ease both;
+}
+
+.landing-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  animation: heroFadeUp 0.7s 0.34s ease both;
+}
+
+/* ── Dark mode support ────────────────────────────────────────────────── */
+html.dark .landing-root {
+  background: #0d0f1a;
+}
+html.dark .landing-nav {
+  background: rgba(13, 15, 26, 0.85);
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+html.dark .landing-btn-ghost {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+html.dark .landing-btn-ghost:hover {
+  border-color: #3ecfdf;
+  color: #3ecfdf;
+}
+html.dark .landing-btn-primary {
+  background: #3ecfdf;
+  border-color: #3ecfdf;
+  color: #0d0f1a;
+}
+html.dark .landing-btn-primary:hover {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0d0f1a;
+}
+html.dark .landing-headline {
+  color: #f1f5f9;
+}
+html.dark .landing-sub {
+  color: #94a3b8;
+}
+html.dark .landing-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+html.dark .landing-glow-1 {
+  background: radial-gradient(
+    circle,
+    rgba(62, 207, 223, 0.12),
+    transparent 70%
+  );
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .landing-nav {
+    padding: 0 20px;
+  }
+  .landing-hero {
+    padding: 68px 20px 0;
+  }
+  .landing-cta-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .landing-btn-lg {
+    width: 100%;
+    text-align: center;
+  }
+}
