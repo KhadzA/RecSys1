@@ -2,8 +2,55 @@ import type { FormState, FormPayload } from "../types/form";
 
 const SHEET_URL = import.meta.env.VITE_SHEET_URL as string;
 
-export async function submitApplication(state: FormState): Promise<void> {
-  const payload: FormPayload = {
+interface UploadedFile {
+  name: string;
+  mimeType: string;
+  data: string; // base64
+}
+
+async function fileToBase64(file: File): Promise<UploadedFile> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      resolve({
+        name: file.name,
+        mimeType: file.type || "application/octet-stream", // fallback
+        data: base64,
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function submitApplication(
+  state: FormState,
+  uploadedFiles: { resumeFiles: File[]; videoFile: File | null },
+): Promise<void> {
+  console.log("submit started", uploadedFiles);
+
+  const files: UploadedFile[] = [];
+
+  try {
+    for (const f of uploadedFiles.resumeFiles) {
+      console.log("converting file:", f.name, f.size, f.type);
+      files.push(await fileToBase64(f));
+      console.log("converted:", f.name);
+    }
+    if (uploadedFiles.videoFile) {
+      console.log("converting video:", uploadedFiles.videoFile.name);
+      files.push(await fileToBase64(uploadedFiles.videoFile));
+    }
+  } catch (err) {
+    console.error("file conversion failed:", err);
+    throw err;
+  }
+
+  console.log("files ready, building payload. total files:", files.length);
+
+  const payload: FormPayload & { action: string; files: UploadedFile[] } = {
+    action: "submit",
     firstName: state.firstName,
     lastName: state.lastName,
     email: state.email,
@@ -29,23 +76,21 @@ export async function submitApplication(state: FormState): Promise<void> {
     slot3Time: state.slot3Time,
     referralSource: state.referralSource.join(", "),
     referralCode: state.referralCode,
-    resumeLink: state.resumeLink,
+    resumeLink: "",
     portfolioLink: state.portfolioLink,
     videoLink: state.videoLink,
+    files,
   };
 
-  // await fetch(SHEET_URL, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(payload),
-  // });
-
-  //
+  const bodyStr = JSON.stringify(payload);
+  console.log("payload size (bytes):", bodyStr.length);
 
   await fetch(SHEET_URL, {
     method: "POST",
-    mode: "no-cors", // fire-and-forget, no preflight
-    headers: { "Content-Type": "text/plain" }, // consistent with login
-    body: JSON.stringify({ action: "submit", ...payload }),
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
+    body: bodyStr,
   });
+
+  console.log("fetch fired");
 }

@@ -15,7 +15,7 @@ import { submitApplication } from "../../utils/submit";
 import "/src/styles/apply.css";
 
 // Set to false before going live
-const DEV_MODE = true;
+const DEV_MODE = false;
 
 const TOTAL_STEPS = 5;
 
@@ -35,6 +35,16 @@ function ApplyForm() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
+
+  const [uploadedFiles, setUploadedFiles] = useState<{
+    resumeFiles: File[];
+    videoFile: File | null;
+  }>({ resumeFiles: [], videoFile: null });
+
+  const [fileErrors, setFileErrors] = useState<{
+    resumeFiles?: string;
+    videoFile?: string;
+  }>({});
 
   const onChange = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,8 +88,21 @@ function ApplyForm() {
       if (!form.slot1Time) errs.slot1Time = "Please pick a time for Slot 1";
     }
     if (s === 5) {
-      if (!form.resumeLink.trim())
-        errs.resumeLink = "Resume / CV link is required";
+      const uploadErrs: typeof fileErrors = {};
+
+      if (uploadedFiles.resumeFiles.length === 0)
+        uploadErrs.resumeFiles = "Please upload your resume / CV";
+
+      const isDesigner = ["Graphic Designer"].some((p) =>
+        [form.position1, form.position2, form.position3].includes(p),
+      );
+      if (isDesigner && !form.portfolioLink.trim())
+        errs.portfolioLink =
+          "Portfolio link is required for Graphic Designer applicants";
+
+      setFileErrors(uploadErrs);
+      if (Object.keys(uploadErrs).length > 0 || Object.keys(errs).length > 0)
+        return false;
     }
 
     setErrors(errs);
@@ -94,7 +117,7 @@ function ApplyForm() {
     } else {
       setSubmitting(true);
       try {
-        await submitApplication(form);
+        await submitApplication(form, uploadedFiles);
         setDone(true);
       } catch {
         alert(
@@ -196,6 +219,9 @@ function ApplyForm() {
                   state={form}
                   errors={errors}
                   onChange={onChange}
+                  uploadedFiles={uploadedFiles}
+                  onUploadedFilesChange={setUploadedFiles}
+                  fileErrors={fileErrors}
                 />
               )}
 
