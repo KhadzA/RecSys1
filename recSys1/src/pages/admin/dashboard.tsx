@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   RefreshCw,
   ExternalLink,
@@ -258,7 +258,7 @@ export default function Dashboard() {
               value: counts.Rejected,
               ...STATUS_STYLES.Rejected,
             },
-          ].map(({ label, value, color, bg }) => (
+          ].map(({ label, value, color }) => (
             <div
               key={label}
               className="form-card"
