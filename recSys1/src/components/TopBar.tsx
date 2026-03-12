@@ -14,8 +14,9 @@ const TopBar: React.FC<TopBarProps> = ({ dark, onToggleDark }) => (
       padding: "14px 32px",
       display: "flex",
       alignItems: "center",
-      position: "relative",
-      zIndex: 10,
+      position: "sticky",
+      top: 0,
+      zIndex: 100,
     }}
   >
     <img

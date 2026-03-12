@@ -9,6 +9,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import AdminLayout from "../../components/AdminLayout";
+import StatusDropdown from "../../components/StatusDropdown";
 import {
   fetchApplications,
   fetchCounts,
@@ -397,7 +398,7 @@ export default function Dashboard() {
               <div
                 key={i}
                 className="form-card"
-                style={{ padding: 0, marginBottom: 12, overflow: "hidden" }}
+                style={{ padding: 0, marginBottom: 12, overflow: "visible" }}
               >
                 <div
                   onClick={() => setExpanded(isOpen ? null : i)}
@@ -408,36 +409,21 @@ export default function Dashboard() {
                     padding: "18px 24px",
                     cursor: "pointer",
                     flexWrap: "wrap",
+                    borderRadius: isOpen
+                      ? "var(--radius) var(--radius) 0 0"
+                      : "var(--radius)",
                   }}
                 >
                   <div onClick={(e) => e.stopPropagation()}>
-                    <select
+                    <StatusDropdown
                       value={app.status}
-                      disabled={updatingStatus === i}
-                      onChange={(e) =>
-                        handleStatusChange(app, i, e.target.value)
+                      onChange={(newStatus) =>
+                        handleStatusChange(app, i, newStatus)
                       }
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "3px 10px",
-                        borderRadius: 20,
-                        background: style.bg,
-                        color: style.color,
-                        border: `1.5px solid ${style.color}40`,
-                        cursor: "pointer",
-                        appearance: "none",
-                        WebkitAppearance: "none",
-                        opacity: updatingStatus === i ? 0.5 : 1,
-                        minWidth: 90,
-                      }}
-                    >
-                      {Object.keys(STATUS_STYLES).map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
+                      disabled={updatingStatus === i}
+                      statusStyles={STATUS_STYLES}
+                      statusOptions={Object.keys(STATUS_STYLES)}
+                    />
                   </div>
                   <div style={{ flex: 1, minWidth: 160 }}>
                     <div

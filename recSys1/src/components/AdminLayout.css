@@ -1,6 +1,6 @@
 .admin-body {
   display: flex;
-  min-height: calc(100vh - 60px); /* minus TopBar height */
+  min-height: calc(100vh - 60px);
   position: relative;
   z-index: 1;
 }
@@ -8,7 +8,6 @@
 /* ── Side nav ───────────────────────────────────────────────────────────── */
 .admin-sidenav {
   width: 220px;
-  min-height: calc(100vh - 60px);
   background: var(--card);
   border-right: 1px solid var(--border);
   display: flex;
@@ -23,17 +22,11 @@
   height: calc(100vh - 60px);
   overflow: hidden;
   z-index: 10;
+  outline: none;
 }
 
 .admin-sidenav.collapsed {
   width: 60px;
-}
-
-.top-bar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  /* your existing styles */
 }
 
 .sidenav-toggle {
@@ -52,6 +45,7 @@
     background 0.2s,
     color 0.2s;
 }
+
 .sidenav-toggle:hover {
   background: rgba(62, 207, 223, 0.08);
   color: var(--accent);
