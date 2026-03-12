@@ -1,13 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   RefreshCw,
   ExternalLink,
   ChevronDown,
   ChevronUp,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import AdminLayout from "../../components/AdminLayout";
-import { fetchApplications, type Application } from "../../utils/auth";
+import {
+  fetchApplications,
+  searchApplications,
+  type Application,
+} from "../../utils/auth";
 import "/src/styles/apply.css";
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
@@ -17,54 +23,102 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   Rejected: { bg: "rgba(220,38,38,0.12)", color: "#dc2626" },
 };
 
+const TABS = ["All", "Pending", "Interviewed", "Hired", "Rejected"];
+const LIMIT = 10;
+
 export default function Dashboard() {
   const [apps, setApps] = useState<Application[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("All");
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Application[] | null>(
+    null,
+  );
+  const [searching, setSearching] = useState(false);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
 
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await fetchApplications();
-      setApps(data.reverse());
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load data.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = useCallback(
+    async (tab = activeTab, p = page) => {
+      setLoading(true);
+      setError("");
+      setExpanded(null);
+      try {
+        const { data, total } = await fetchApplications(tab, p, LIMIT);
+        setApps(data);
+        setTotal(total);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load data.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeTab, page],
+  );
 
   useEffect(() => {
     load();
   }, []);
 
-  const filtered = apps.filter((a) =>
-    [a.fullName, a.email, a.positions, a.status]
-      .join(" ")
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  );
+  const switchTab = (tab: string) => {
+    setActiveTab(tab);
+    setPage(1);
+    setSearch("");
+    setSearchResults(null);
+    setExpanded(null);
+    load(tab, 1);
+  };
 
-  const counts = apps.reduce(
-    (acc, a) => {
-      acc[a.status] = (acc[a.status] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
+  const goPage = (p: number) => {
+    setPage(p);
+    setExpanded(null);
+    load(activeTab, p);
+  };
+
+  // Debounced server-side search
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    clearTimeout(searchTimeout.current);
+    if (!val.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setSearching(true);
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const results = await searchApplications(val.trim());
+        setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 500);
+  };
+
+  const displayed = searchResults ?? apps;
+  const totalPages = Math.ceil(total / LIMIT);
+  const isSearching = search.trim().length > 0;
+
+  // Summary counts from current tab total
+  const tabCounts: Record<string, number> = {};
+  TABS.slice(1).forEach((s) => {
+    tabCounts[s] = 0;
+  });
 
   return (
     <AdminLayout>
       <div className="wrapper" style={{ maxWidth: 1000 }}>
+        {/* Header */}
         <div
           style={{
             display: "flex",
             alignItems: "flex-end",
             justifyContent: "space-between",
-            marginBottom: 32,
+            marginBottom: 28,
             flexWrap: "wrap",
             gap: 16,
           }}
@@ -74,12 +128,14 @@ export default function Dashboard() {
               Admin <span>Dashboard</span>
             </div>
             <div className="page-sub" style={{ marginBottom: 0 }}>
-              {apps.length} total application{apps.length !== 1 ? "s" : ""}
+              {isSearching
+                ? `${searchResults?.length ?? 0} search result${searchResults?.length !== 1 ? "s" : ""}`
+                : `${total} ${activeTab !== "All" ? activeTab.toLowerCase() : ""} application${total !== 1 ? "s" : ""}`}
             </div>
           </div>
           <button
             className="btn btn-ghost"
-            onClick={load}
+            onClick={() => load()}
             disabled={loading}
             style={{
               display: "flex",
@@ -98,40 +154,48 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* Status tabs */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: 14,
-            marginBottom: 32,
+            display: "flex",
+            gap: 8,
+            marginBottom: 24,
+            flexWrap: "wrap",
           }}
         >
-          {["Pending", "Interviewed", "Hired", "Rejected"].map((s) => (
-            <div
-              key={s}
-              className="form-card"
-              style={{ padding: "18px 22px", textAlign: "center" }}
-            >
-              <div
+          {TABS.map((tab) => {
+            const s = STATUS_STYLES[tab];
+            const isActive = activeTab === tab && !isSearching;
+            return (
+              <button
+                key={tab}
+                onClick={() => switchTab(tab)}
                 style={{
-                  fontSize: 28,
-                  fontWeight: 800,
-                  fontFamily: "Syne, sans-serif",
-                  color: STATUS_STYLES[s]?.color,
+                  padding: "7px 16px",
+                  borderRadius: 20,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  border: isActive
+                    ? `1.5px solid ${s?.color ?? "var(--accent)"}`
+                    : "1.5px solid var(--border)",
+                  background: isActive
+                    ? (s?.bg ?? "rgba(62,207,223,0.12)")
+                    : "transparent",
+                  color: isActive
+                    ? (s?.color ?? "var(--accent)")
+                    : "var(--muted)",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
                 }}
               >
-                {counts[s] || 0}
-              </div>
-              <div
-                style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}
-              >
-                {s}
-              </div>
-            </div>
-          ))}
+                {tab}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="field" style={{ marginBottom: 20 }}>
+        {/* Search */}
+        <div className="field" style={{ marginBottom: 24 }}>
           <div style={{ position: "relative" }}>
             <Search
               size={15}
@@ -145,17 +209,43 @@ export default function Dashboard() {
                 pointerEvents: "none",
               }}
             />
+            {searching && (
+              <RefreshCw
+                size={13}
+                style={{
+                  position: "absolute",
+                  right: 14,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--muted)",
+                  animation: "spin 1s linear infinite",
+                }}
+              />
+            )}
             <input
               type="text"
-              placeholder="Search by name, email, position, or status…"
+              placeholder="Search all applicants by name, email, position, or status…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingLeft: 40 }}
+              onChange={(e) => handleSearch(e.target.value)}
+              style={{ paddingLeft: 40, paddingRight: 36 }}
             />
           </div>
+          {isSearching && (
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--muted)",
+                marginTop: 6,
+                opacity: 0.7,
+              }}
+            >
+              Searching across all applications in the sheet…
+            </div>
+          )}
         </div>
 
-        {loading && (
+        {/* States */}
+        {(loading || searching) && !isSearching && (
           <div
             className="form-card"
             style={{
@@ -179,7 +269,7 @@ export default function Dashboard() {
             {error}
           </div>
         )}
-        {!loading && !error && filtered.length === 0 && (
+        {!loading && !error && displayed.length === 0 && (
           <div
             className="form-card"
             style={{
@@ -188,15 +278,16 @@ export default function Dashboard() {
               color: "var(--muted)",
             }}
           >
-            No applications found.
+            {isSearching ? "No results found." : "No applications yet."}
           </div>
         )}
 
+        {/* Cards */}
         {!loading &&
           !error &&
-          filtered.map((app, i) => {
+          displayed.map((app, i) => {
             const isOpen = expanded === i;
-            const style = STATUS_STYLES[app.status] || {
+            const style = STATUS_STYLES[app.status] ?? {
               bg: "rgba(100,116,139,0.1)",
               color: "#64748b",
             };
@@ -334,6 +425,62 @@ export default function Dashboard() {
               </div>
             );
           })}
+
+        {/* Pagination — only when not searching */}
+        {!isSearching && totalPages > 1 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 24,
+            }}
+          >
+            <button
+              className="btn btn-ghost"
+              onClick={() => goPage(page - 1)}
+              disabled={page === 1 || loading}
+              style={{
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <ChevronLeft size={15} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => goPage(p)}
+                disabled={loading}
+                className="btn"
+                style={{
+                  padding: "7px 13px",
+                  fontSize: 13,
+                  background: p === page ? "var(--accent)" : "transparent",
+                  color: p === page ? "#fff" : "var(--muted)",
+                  border: p === page ? "none" : "1.5px solid var(--border)",
+                  borderRadius: 8,
+                }}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              className="btn btn-ghost"
+              onClick={() => goPage(page + 1)}
+              disabled={page === totalPages || loading}
+              style={{
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        )}
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </AdminLayout>

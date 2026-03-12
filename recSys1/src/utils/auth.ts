@@ -44,16 +44,42 @@ export function logout(): void {
 }
 
 // ── Applications ──────────────────────────────────────────────────────────────
-export async function fetchApplications(): Promise<Application[]> {
+export async function fetchApplications(
+  status = "All",
+  page = 1,
+  limit = 10,
+): Promise<{ data: Application[]; total: number }> {
   const token = getToken();
   if (!token) throw new Error("Not logged in");
 
-  const data = await gasPost<{ result: string; data: Application[] }>({
+  const res = await gasPost<{
+    result: string;
+    data: Application[];
+    total: number;
+  }>({
     action: "getData",
     token,
+    status,
+    page,
+    limit,
   });
 
-  return data.data;
+  return { data: res.data, total: res.total };
+}
+
+export async function searchApplications(
+  query: string,
+): Promise<Application[]> {
+  const token = getToken();
+  if (!token) throw new Error("Not logged in");
+
+  const res = await gasPost<{ result: string; data: Application[] }>({
+    action: "search",
+    token,
+    query,
+  });
+
+  return res.data;
 }
 
 // ── Jobs ──────────────────────────────────────────────────────────────────────
