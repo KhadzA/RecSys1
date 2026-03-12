@@ -13,6 +13,6 @@ export const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   Rejected: { bg: "#fee2e2", color: "#dc2626" },
 };
 
-// HELL NAHHH
+// HELL NAHHH HOII
 
 export const STATUS_LIST = Object.keys(STATUS_STYLES);
