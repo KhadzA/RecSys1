@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   RefreshCw,
   ExternalLink,
@@ -73,6 +73,10 @@ export default function Dashboard() {
     },
     [activeTab, page],
   );
+
+  useEffect(() => {
+    load("All", 1);
+  }, []);
 
   const handleStatusChange = async (
     app: Application,

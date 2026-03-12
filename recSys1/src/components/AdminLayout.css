@@ -17,14 +17,23 @@
   gap: 4px;
   flex-shrink: 0;
   transition: width 0.25s ease;
-  position: sticky;
+  position: fixed;
   top: 60px;
+  left: 0;
   height: calc(100vh - 60px);
   overflow: hidden;
+  z-index: 10;
 }
 
 .admin-sidenav.collapsed {
   width: 60px;
+}
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  /* your existing styles */
 }
 
 .sidenav-toggle {
@@ -126,6 +135,8 @@
   flex: 1;
   min-width: 0;
   overflow-x: hidden;
+  margin-left: 220px;
+  transition: margin-left 0.25s ease;
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
