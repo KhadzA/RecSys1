@@ -26,7 +26,6 @@ interface Props {
 
 const DESIGNER_POSITIONS = ["Graphic Designer"];
 const MAX_FILE_MB = 15;
-const MAX_VIDEO_MB = 50;
 
 const formatBytes = (bytes: number) =>
   bytes < 1024 * 1024
@@ -42,7 +41,6 @@ const Step5Documents: React.FC<Props> = ({
   fileErrors,
 }) => {
   const resumeInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const isDesigner = DESIGNER_POSITIONS.some((p) =>
     [state.position1, state.position2, state.position3].includes(p),
@@ -58,19 +56,6 @@ const Step5Documents: React.FC<Props> = ({
   const removeResumeFile = (index: number) => {
     const next = uploadedFiles.resumeFiles.filter((_, i) => i !== index);
     onUploadedFilesChange({ ...uploadedFiles, resumeFiles: next });
-  };
-
-  const handleVideoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file && file.size > MAX_VIDEO_MB * 1024 * 1024) {
-      alert(
-        `Video must be under ${MAX_VIDEO_MB}MB. Use a YouTube or Drive link instead.`,
-      );
-      e.target.value = "";
-      return;
-    }
-    onUploadedFilesChange({ ...uploadedFiles, videoFile: file });
-    e.target.value = "";
   };
 
   return (
@@ -305,6 +290,8 @@ const Step5Documents: React.FC<Props> = ({
       </div>
 
       {/* Video */}
+
+      {/* Uploaded video badge */}
       <div className="doc-link-card">
         <div className="doc-link-header">
           <span className="doc-link-icon">
@@ -313,114 +300,25 @@ const Step5Documents: React.FC<Props> = ({
           <div>
             <div className="doc-link-title">Video Introduction</div>
             <div className="doc-link-desc">
-              Short self-introduction (1 min max). Upload a file or paste a
-              YouTube / Drive link.
+              Upload your video to YouTube or Google Drive, then paste the link
+              here. Short self-introduction (1 min max).
             </div>
           </div>
           <div className="doc-optional">Optional</div>
         </div>
-
-        {/* Uploaded video badge */}
-        {uploadedFiles.videoFile ? (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              background: "rgba(62,207,223,0.07)",
-              border: "1px solid rgba(62,207,223,0.2)",
-              borderRadius: 8,
-              padding: "7px 11px",
-              fontSize: 13,
-              marginBottom: 10,
-            }}
-          >
-            <FileText
-              size={14}
-              style={{ color: "var(--accent)", flexShrink: 0 }}
-            />
-            <span
-              style={{
-                flex: 1,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {uploadedFiles.videoFile.name}
+        <div className="field">
+          <div className="link-input-wrap">
+            <span className="link-icon">
+              <Link size={15} />
             </span>
-            <span
-              style={{ fontSize: 11.5, color: "var(--muted)", flexShrink: 0 }}
-            >
-              {formatBytes(uploadedFiles.videoFile.size)}
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                onUploadedFilesChange({ ...uploadedFiles, videoFile: null })
-              }
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--muted)",
-                padding: 2,
-                display: "flex",
-              }}
-            >
-              <X size={14} />
-            </button>
-          </div>
-        ) : (
-          <>
             <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/*"
-              style={{ display: "none" }}
-              onChange={handleVideoFile}
+              type="url"
+              placeholder="https://youtube.com/... or Drive link"
+              value={state.videoLink}
+              onChange={(e) => onChange("videoLink", e.target.value)}
             />
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => videoInputRef.current?.click()}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 7,
-                fontSize: 13,
-                marginBottom: 10,
-              }}
-            >
-              <Upload size={15} /> Upload Video (max {MAX_VIDEO_MB}MB)
-            </button>
-            <div
-              style={{
-                textAlign: "center",
-                fontSize: 12,
-                color: "var(--muted)",
-                marginBottom: 8,
-              }}
-            >
-              — or paste a link —
-            </div>
-            <div className="field">
-              <div className="link-input-wrap">
-                <span className="link-icon">
-                  <Link size={15} />
-                </span>
-                <input
-                  type="url"
-                  placeholder="https://youtube.com/... or Drive link"
-                  value={state.videoLink}
-                  onChange={(e) => onChange("videoLink", e.target.value)}
-                />
-              </div>
-            </div>
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );

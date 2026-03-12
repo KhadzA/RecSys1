@@ -638,21 +638,21 @@ body::before {
 
 /* Top bar */
 .top-bar {
-  background: #080e2e;
-  box-shadow: 0 2px 12px rgba(8, 14, 46, 0.18);
-  border-bottom: 2px solid transparent;
-  transition:
-    background 0.3s,
-    box-shadow 0.3s,
-    border-color 0.3s;
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(8, 14, 46, 0.1);
+  border-bottom: 1px solid #dce6ef;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
+
 .dm-toggle {
   display: flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #fff;
+  background: rgba(8, 14, 46, 0.06);
+  border: 1px solid rgba(8, 14, 46, 0.12);
+  color: #080e2e; /* dark text in light mode */
   border-radius: 20px;
   padding: 6px 14px;
   font-size: 12px;
@@ -660,10 +660,9 @@ body::before {
   cursor: pointer;
   transition: all 0.2s;
   font-family: "DM Sans", sans-serif;
-  letter-spacing: 0.2px;
 }
 .dm-toggle:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(8, 14, 46, 0.1);
 }
 .dm-icon {
   font-size: 14px;
@@ -784,9 +783,9 @@ body::before {
   -webkit-text-fill-color: var(--accent) !important;
 }
 .dark .top-bar {
-  background: #0a1628;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
-  border-bottom: 2px solid #7be1ef;
+  background: #050c1a;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(123, 225, 239, 0.2);
 }
 .dark .dm-toggle {
   border-color: rgba(123, 225, 239, 0.35);

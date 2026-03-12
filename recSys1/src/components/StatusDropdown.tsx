@@ -1,26 +1,25 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
+import { STATUS_STYLES, STATUS_LIST } from "../utils/statuses";
 
 interface StatusDropdownProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
-  statusStyles: Record<string, { bg: string; color: string }>;
-  statusOptions: string[];
 }
 
 export default function StatusDropdown({
   value,
   onChange,
   disabled = false,
-  statusStyles,
-  statusOptions,
 }: StatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const currentStyle = statusStyles[value];
+  const currentStyle = STATUS_STYLES[value] ?? {
+    bg: "#f1f5f9",
+    color: "#64748b",
+  };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -30,7 +29,6 @@ export default function StatusDropdown({
         setIsOpen(false);
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -43,12 +41,8 @@ export default function StatusDropdown({
   return (
     <div
       ref={dropdownRef}
-      style={{
-        position: "relative",
-        display: "inline-block",
-      }}
+      style={{ position: "relative", display: "inline-block" }}
     >
-      {/* Trigger Button */}
       <button
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -66,58 +60,56 @@ export default function StatusDropdown({
           fontWeight: 700,
           opacity: disabled ? 0.5 : 1,
           transition: "all 0.2s ease",
-          minWidth: 110,
-          justifyContent: "space-between",
+          minWidth: 160,
+          justifyContent: "center",
           fontFamily: "inherit",
+          whiteSpace: "nowrap",
         }}
         onMouseEnter={(e) => {
-          if (!disabled) {
-            (e.target as HTMLButtonElement).style.boxShadow =
-              `0 0 0 3px ${currentStyle.color}15`;
-          }
+          if (!disabled)
+            (e.currentTarget as HTMLButtonElement).style.boxShadow =
+              `0 0 0 3px ${currentStyle.color}20`;
         }}
         onMouseLeave={(e) => {
-          (e.target as HTMLButtonElement).style.boxShadow = "none";
+          (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
         }}
       >
-        {value}
+        {value || "Set status"}
         <ChevronDown
-          size={16}
+          size={14}
           style={{
             transition: "transform 0.2s ease",
             transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+            flexShrink: 0,
           }}
         />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div
           style={{
             position: "absolute",
-            top: "100%",
+            top: "calc(100% + 6px)",
             left: 0,
-            marginTop: 8,
             backgroundColor: "var(--card)",
             border: "1px solid var(--border)",
             borderRadius: 12,
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
             zIndex: 1000,
-            minWidth: 140,
+            minWidth: 220,
             overflow: "hidden",
           }}
         >
-          {statusOptions.map((status) => {
-            const style = statusStyles[status];
+          {STATUS_LIST.map((status) => {
+            const style = STATUS_STYLES[status];
             const isSelected = status === value;
-
             return (
               <button
                 key={status}
                 onClick={() => handleSelect(status)}
                 style={{
                   width: "100%",
-                  padding: "10px 14px",
+                  padding: "9px 14px",
                   textAlign: "left",
                   backgroundColor: isSelected ? style.bg : "transparent",
                   color: style.color,
@@ -126,25 +118,26 @@ export default function StatusDropdown({
                   fontSize: 12,
                   fontWeight: 700,
                   fontFamily: "inherit",
-                  transition: "all 0.15s ease",
+                  transition: "background 0.15s ease",
                   borderLeft: isSelected
                     ? `3px solid ${style.color}`
                     : "3px solid transparent",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
+                  whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isSelected) {
-                    (e.target as HTMLButtonElement).style.backgroundColor =
-                      `${style.bg}`;
-                  }
+                  if (!isSelected)
+                    (
+                      e.currentTarget as HTMLButtonElement
+                    ).style.backgroundColor = style.bg;
                 }}
                 onMouseLeave={(e) => {
-                  if (!isSelected) {
-                    (e.target as HTMLButtonElement).style.backgroundColor =
-                      "transparent";
-                  }
+                  if (!isSelected)
+                    (
+                      e.currentTarget as HTMLButtonElement
+                    ).style.backgroundColor = "transparent";
                 }}
               >
                 <span
@@ -155,6 +148,7 @@ export default function StatusDropdown({
                     borderRadius: "50%",
                     backgroundColor: style.color,
                     opacity: isSelected ? 1 : 0.5,
+                    flexShrink: 0,
                   }}
                 />
                 {status}

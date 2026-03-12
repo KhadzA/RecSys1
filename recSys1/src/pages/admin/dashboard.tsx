@@ -17,17 +17,11 @@ import {
   updateApplicationStatus,
   type Application,
 } from "../../utils/auth";
+import { STATUS_STYLES, STATUS_LIST } from "../../utils/statuses";
 
 import "/src/styles/apply.css";
 
-const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  Pending: { bg: "rgba(245,158,11,0.12)", color: "#f59e0b" },
-  Interviewed: { bg: "rgba(5,150,105,0.12)", color: "#059669" },
-  Hired: { bg: "rgba(37,99,235,0.12)", color: "#2563eb" },
-  Rejected: { bg: "rgba(220,38,38,0.12)", color: "#dc2626" },
-};
-
-const TABS = ["All", "Pending", "Interviewed", "Hired", "Rejected"];
+const TABS = ["All", ...STATUS_LIST];
 const LIMIT = 10;
 
 export default function Dashboard() {
@@ -42,12 +36,12 @@ export default function Dashboard() {
     null,
   );
   const [searching, setSearching] = useState(false);
-  const [counts, setCounts] = useState<Record<string, number>>({
-    Pending: 0,
-    Interviewed: 0,
-    Hired: 0,
-    Rejected: 0,
-    total: 0,
+  const [counts, setCounts] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = { total: 0 };
+    STATUS_LIST.forEach((s) => {
+      init[s] = 0;
+    });
+    return init;
   });
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -87,11 +81,9 @@ export default function Dashboard() {
     setUpdatingStatus(i);
     try {
       await updateApplicationStatus(app.email, app.fullName, newStatus);
-      // optimistic update
       setApps((prev) =>
         prev.map((a, idx) => (idx === i ? { ...a, status: newStatus } : a)),
       );
-      // refresh counts
       fetchCounts().then(setCounts);
     } catch {
       alert("Failed to update status. Please try again.");
@@ -115,7 +107,6 @@ export default function Dashboard() {
     load(activeTab, p);
   };
 
-  // Debounced server-side search
   const handleSearch = (val: string) => {
     setSearch(val);
     clearTimeout(searchTimeout.current);
@@ -139,12 +130,6 @@ export default function Dashboard() {
   const displayed = searchResults ?? apps;
   const totalPages = Math.ceil(total / LIMIT);
   const isSearching = search.trim().length > 0;
-
-  // Summary counts from current tab total
-  const tabCounts: Record<string, number> = {};
-  TABS.slice(1).forEach((s) => {
-    tabCounts[s] = 0;
-  });
 
   return (
     <AdminLayout>
@@ -223,6 +208,7 @@ export default function Dashboard() {
                     : "var(--muted)",
                   cursor: "pointer",
                   transition: "all 0.15s",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {tab}
@@ -241,28 +227,12 @@ export default function Dashboard() {
           }}
         >
           {[
-            {
-              label: "Total",
-              value: counts.total,
-              color: "var(--accent)",
-              bg: "rgba(62,207,223,0.1)",
-            },
-            {
-              label: "Pending",
-              value: counts.Pending,
-              ...STATUS_STYLES.Pending,
-            },
-            {
-              label: "Interviewed",
-              value: counts.Interviewed,
-              ...STATUS_STYLES.Interviewed,
-            },
-            { label: "Hired", value: counts.Hired, ...STATUS_STYLES.Hired },
-            {
-              label: "Rejected",
-              value: counts.Rejected,
-              ...STATUS_STYLES.Rejected,
-            },
+            { label: "Total", value: counts.total, color: "var(--accent)" },
+            ...STATUS_LIST.map((s) => ({
+              label: s,
+              value: counts[s] ?? 0,
+              color: STATUS_STYLES[s].color,
+            })),
           ].map(({ label, value, color }) => (
             <div
               key={label}
@@ -289,7 +259,14 @@ export default function Dashboard() {
                 {value}
               </div>
               <div
-                style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}
+                style={{
+                  fontSize: 11.5,
+                  color: "var(--muted)",
+                  marginTop: 2,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
               >
                 {label}
               </div>
@@ -327,7 +304,7 @@ export default function Dashboard() {
             )}
             <input
               type="text"
-              placeholder="Search all applicants by name, email, position, or status…"
+              placeholder="Search by name, email, position, or status…"
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               style={{ paddingLeft: 40, paddingRight: 36 }}
@@ -342,7 +319,7 @@ export default function Dashboard() {
                 opacity: 0.7,
               }}
             >
-              Searching across all applications in the sheet…
+              Searching across all applications…
             </div>
           )}
         </div>
@@ -417,8 +394,6 @@ export default function Dashboard() {
                         handleStatusChange(app, i, newStatus)
                       }
                       disabled={updatingStatus === i}
-                      statusStyles={STATUS_STYLES}
-                      statusOptions={Object.keys(STATUS_STYLES)}
                     />
                   </div>
                   <div style={{ flex: 1, minWidth: 160 }}>
@@ -526,7 +501,7 @@ export default function Dashboard() {
             );
           })}
 
-        {/* Pagination — only when not searching */}
+        {/* Pagination */}
         {!isSearching && totalPages > 1 && (
           <div
             style={{
@@ -582,7 +557,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }`}</style>
     </AdminLayout>
   );
 }
@@ -638,7 +613,6 @@ function LinkDetail({ label, href }: { label: string; href: string }) {
     href.startsWith("http://") || href.startsWith("https://")
       ? href
       : `https://${href}`;
-
   return (
     <div className="field">
       <label

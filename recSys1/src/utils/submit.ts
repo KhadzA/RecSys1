@@ -38,10 +38,6 @@ export async function submitApplication(
       files.push(await fileToBase64(f));
       console.log("converted:", f.name);
     }
-    if (uploadedFiles.videoFile) {
-      console.log("converting video:", uploadedFiles.videoFile.name);
-      files.push(await fileToBase64(uploadedFiles.videoFile));
-    }
   } catch (err) {
     console.error("file conversion failed:", err);
     throw err;

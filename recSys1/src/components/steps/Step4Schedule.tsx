@@ -98,13 +98,19 @@ const Step4Schedule: React.FC<Props> = ({
           </React.Fragment>
         ))}
       </div>
-      <input
-        type="text"
-        placeholder="If Referral — enter Sharer Code (optional)"
-        value={state.referralCode}
-        onChange={(e) => onChange("referralCode", e.target.value)}
-        style={{ marginTop: 4 }}
-      />
+
+      {state.referralSource.includes("Referral") && (
+        <div className="field" style={{ marginTop: 4 }}>
+          <label>Referral Code</label>
+          <input
+            type="text"
+            placeholder="Enter referral code"
+            value={state.referralCode}
+            onChange={(e) => onChange("referralCode", e.target.value)}
+            style={{ maxWidth: 280 }}
+          />
+        </div>
+      )}
     </div>
   </div>
 );
