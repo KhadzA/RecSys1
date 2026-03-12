@@ -648,6 +648,11 @@ function Detail({
 }
 
 function LinkDetail({ label, href }: { label: string; href: string }) {
+  const safeHref =
+    href.startsWith("http://") || href.startsWith("https://")
+      ? href
+      : `https://${href}`;
+
   return (
     <div className="field">
       <label
@@ -663,7 +668,7 @@ function LinkDetail({ label, href }: { label: string; href: string }) {
         {label}
       </label>
       <a
-        href={href}
+        href={safeHref}
         target="_blank"
         rel="noreferrer"
         style={{
