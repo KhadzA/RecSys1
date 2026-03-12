@@ -390,10 +390,6 @@ export default function Dashboard() {
           !error &&
           displayed.map((app, i) => {
             const isOpen = expanded === i;
-            const style = STATUS_STYLES[app.status] ?? {
-              bg: "rgba(100,116,139,0.1)",
-              color: "#64748b",
-            };
             return (
               <div
                 key={i}
