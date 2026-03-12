@@ -11,9 +11,12 @@ import {
 import AdminLayout from "../../components/AdminLayout";
 import {
   fetchApplications,
+  fetchCounts,
   searchApplications,
+  updateApplicationStatus,
   type Application,
 } from "../../utils/auth";
+
 import "/src/styles/apply.css";
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
@@ -38,6 +41,14 @@ export default function Dashboard() {
     null,
   );
   const [searching, setSearching] = useState(false);
+  const [counts, setCounts] = useState<Record<string, number>>({
+    Pending: 0,
+    Interviewed: 0,
+    Hired: 0,
+    Rejected: 0,
+    total: 0,
+  });
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
 
@@ -47,9 +58,13 @@ export default function Dashboard() {
       setError("");
       setExpanded(null);
       try {
-        const { data, total } = await fetchApplications(tab, p, LIMIT);
+        const [{ data, total }, counts] = await Promise.all([
+          fetchApplications(tab, p, LIMIT),
+          fetchCounts(),
+        ]);
         setApps(data);
         setTotal(total);
+        setCounts(counts);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load data.");
       } finally {
@@ -59,9 +74,26 @@ export default function Dashboard() {
     [activeTab, page],
   );
 
-  useEffect(() => {
-    load();
-  }, []);
+  const handleStatusChange = async (
+    app: Application,
+    i: number,
+    newStatus: string,
+  ) => {
+    setUpdatingStatus(i);
+    try {
+      await updateApplicationStatus(app.email, app.fullName, newStatus);
+      // optimistic update
+      setApps((prev) =>
+        prev.map((a, idx) => (idx === i ? { ...a, status: newStatus } : a)),
+      );
+      // refresh counts
+      fetchCounts().then(setCounts);
+    } catch {
+      alert("Failed to update status. Please try again.");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
 
   const switchTab = (tab: string) => {
     setActiveTab(tab);
@@ -194,6 +226,72 @@ export default function Dashboard() {
           })}
         </div>
 
+        {/* Counts overview */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+            gap: 12,
+            marginBottom: 24,
+          }}
+        >
+          {[
+            {
+              label: "Total",
+              value: counts.total,
+              color: "var(--accent)",
+              bg: "rgba(62,207,223,0.1)",
+            },
+            {
+              label: "Pending",
+              value: counts.Pending,
+              ...STATUS_STYLES.Pending,
+            },
+            {
+              label: "Interviewed",
+              value: counts.Interviewed,
+              ...STATUS_STYLES.Interviewed,
+            },
+            { label: "Hired", value: counts.Hired, ...STATUS_STYLES.Hired },
+            {
+              label: "Rejected",
+              value: counts.Rejected,
+              ...STATUS_STYLES.Rejected,
+            },
+          ].map(({ label, value, color, bg }) => (
+            <div
+              key={label}
+              className="form-card"
+              onClick={() => label !== "Total" && switchTab(label)}
+              style={{
+                padding: "16px 20px",
+                textAlign: "center",
+                cursor: label !== "Total" ? "pointer" : "default",
+                border:
+                  activeTab === label && !isSearching
+                    ? `1.5px solid ${color}`
+                    : undefined,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 26,
+                  fontWeight: 800,
+                  fontFamily: "Syne, sans-serif",
+                  color,
+                }}
+              >
+                {value}
+              </div>
+              <div
+                style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}
+              >
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Search */}
         <div className="field" style={{ marginBottom: 24 }}>
           <div style={{ position: "relative" }}>
@@ -308,19 +406,35 @@ export default function Dashboard() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: "3px 10px",
-                      borderRadius: 20,
-                      background: style.bg,
-                      color: style.color,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {app.status}
-                  </span>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={app.status}
+                      disabled={updatingStatus === i}
+                      onChange={(e) =>
+                        handleStatusChange(app, i, e.target.value)
+                      }
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "3px 10px",
+                        borderRadius: 20,
+                        background: style.bg,
+                        color: style.color,
+                        border: `1.5px solid ${style.color}40`,
+                        cursor: "pointer",
+                        appearance: "none",
+                        WebkitAppearance: "none",
+                        opacity: updatingStatus === i ? 0.5 : 1,
+                        minWidth: 90,
+                      }}
+                    >
+                      {Object.keys(STATUS_STYLES).map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div style={{ flex: 1, minWidth: 160 }}>
                     <div
                       style={{

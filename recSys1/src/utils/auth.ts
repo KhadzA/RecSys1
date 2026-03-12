@@ -82,6 +82,30 @@ export async function searchApplications(
   return res.data;
 }
 
+export async function fetchCounts(): Promise<Record<string, number>> {
+  const token = getToken();
+  if (!token) throw new Error("Not logged in");
+
+  const res = await gasPost<{ result: string; counts: Record<string, number> }>(
+    {
+      action: "getCounts",
+      token,
+    },
+  );
+  return res.counts;
+}
+
+export async function updateApplicationStatus(
+  email: string,
+  fullName: string,
+  status: string,
+): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error("Not logged in");
+
+  await gasPost({ action: "updateStatus", token, email, fullName, status });
+}
+
 // ── Jobs ──────────────────────────────────────────────────────────────────────
 export async function fetchJobs(): Promise<Job[]> {
   const data = await gasPost<{ result: string; data: Job[] }>({
