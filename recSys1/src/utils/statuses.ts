@@ -3,7 +3,7 @@ export const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   Interviewed: { bg: "#d1fae5", color: "#059669" },
   "For Client Endorsement": { bg: "#ede9fe", color: "#7c3aed" },
   Hired: { bg: "#dcfce7", color: "#16a34a" },
-  Resigned: { bg: "#ffedd5", color: "#ea580c" },
+  "Hired - Resigned": { bg: "#ffedd5", color: "#ea580c" },
   "Open for other roles": { bg: "#dbeafe", color: "#2563eb" },
   "Could be Revisited": { bg: "#e0f2fe", color: "#0284c7" },
   "For Future Consideration": { bg: "#f1f5f9", color: "#475569" },
