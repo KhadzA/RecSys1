@@ -8,6 +8,7 @@ import Applicant from "./pages/applicant/applyForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/admin/dashboard";
 import AddJobs from "./pages/admin/addJobs";
+import Settings from "./pages/admin/settings";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -31,6 +32,15 @@ createRoot(document.getElementById("root")!).render(
           element={
             <ProtectedRoute>
               <AddJobs />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/pages/admin/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           }
         />
