@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Briefcase, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Briefcase, LogOut, Menu, X, Cog } from "lucide-react";
 import TopBar from "./TopBar";
 import { logout } from "../utils/auth";
 import "/src/styles/apply.css";
@@ -34,6 +34,11 @@ export default function AdminLayout({ children }: Props) {
       to: "/pages/admin/jobs",
       icon: <Briefcase size={18} />,
       label: "Add Jobs",
+    },
+    {
+      to: "/pages/admin/settings",
+      icon: <Cog size={18} />,
+      label: "Settings",
     },
   ];
 

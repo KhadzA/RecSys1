@@ -1,92 +1,82 @@
-import type { FormState, FormPayload } from "../types/form";
+import { supabase } from "./supabase";
+import type { FormState } from "../types/form";
 
-const SHEET_URL = import.meta.env.VITE_SHEET_URL as string;
+async function uploadFile(file: File, folder: string): Promise<string> {
+  const ext = file.name.split(".").pop();
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-interface UploadedFile {
-  name: string;
-  mimeType: string;
-  data: string; // base64
-}
+  const { error } = await supabase.storage
+    .from("applicant-files")
+    .upload(path, file, { contentType: file.type, upsert: false });
 
-async function fileToBase64(file: File): Promise<UploadedFile> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      resolve({
-        name: file.name,
-        mimeType: file.type || "application/octet-stream", // fallback
-        data: base64,
-      });
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  if (error) throw new Error(`Upload failed: ${error.message}`);
+
+  const { data } = supabase.storage.from("applicant-files").getPublicUrl(path);
+
+  return data.publicUrl;
 }
 
 export async function submitApplication(
   state: FormState,
   uploadedFiles: { resumeFiles: File[]; videoFile: File | null },
 ): Promise<void> {
-  console.log("submit started", uploadedFiles);
+  const folder = `${state.firstName}_${state.lastName}_${Date.now()}`;
 
-  const files: UploadedFile[] = [];
-
-  try {
-    for (const f of uploadedFiles.resumeFiles) {
-      console.log("converting file:", f.name, f.size, f.type);
-      files.push(await fileToBase64(f));
-      console.log("converted:", f.name);
-    }
-  } catch (err) {
-    console.error("file conversion failed:", err);
-    throw err;
+  // Upload resume files
+  const resumeUrls: string[] = [];
+  for (const file of uploadedFiles.resumeFiles) {
+    const url = await uploadFile(file, folder);
+    resumeUrls.push(url);
   }
 
-  console.log("files ready, building payload. total files:", files.length);
+  // Upload video if file was provided
+  let videoLink = state.videoLink || "";
+  if (uploadedFiles.videoFile) {
+    videoLink = await uploadFile(uploadedFiles.videoFile, folder);
+  }
 
-  const payload: FormPayload & { action: string; files: UploadedFile[] } = {
-    action: "submit",
-    firstName: state.firstName,
-    lastName: state.lastName,
+  const positions = [state.position1, state.position2, state.position3]
+    .filter(Boolean)
+    .map((p) => `• ${p}`)
+    .join("\n");
+
+  const { error } = await supabase.from("applications").insert({
+    status: "For Interview",
+    first_name: state.firstName,
+    last_name: state.lastName,
+    full_name: `${state.firstName} ${state.lastName}`.trim(),
     email: state.email,
     phone: state.phone,
     address: state.address,
-    position1: state.position1,
-    position2: state.position2,
-    position3: state.position3,
-    employmentType: state.employmentType,
-    workSetup: state.workSetup.join(", "),
-    workSchedule: state.workSchedule.join(", "),
-    educationLevel: state.educationLevel,
+    positions,
+    employment_type: state.employmentType,
+    work_setup: state.workSetup.join(", "),
+    work_schedule: state.workSchedule.join(", "),
+    education_level: state.educationLevel,
     school: state.school,
     course: state.course,
-    skillsList: state.skills.join(", "),
-    tools: state.tools.join(", "),
-    otherTools: state.otherTools,
-    slot1Date: state.slot1Date,
-    slot1Time: state.slot1Time,
-    slot2Date: state.slot2Date,
-    slot2Time: state.slot2Time,
-    slot3Date: state.slot3Date,
-    slot3Time: state.slot3Time,
-    referralSource: state.referralSource.join(", "),
-    referralCode: state.referralCode,
-    resumeLink: "",
-    portfolioLink: state.portfolioLink,
-    videoLink: state.videoLink,
-    files,
-  };
-
-  const bodyStr = JSON.stringify(payload);
-  console.log("payload size (bytes):", bodyStr.length);
-
-  await fetch(SHEET_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain" },
-    body: bodyStr,
+    skills: state.skills.join(", "),
+    tools: [...state.tools, state.otherTools].filter(Boolean).join(", "),
+    interview_slots: [
+      state.slot1Date && state.slot1Time
+        ? `${state.slot1Date} @ ${state.slot1Time}`
+        : state.slot1Date,
+      state.slot2Date && state.slot2Time
+        ? `${state.slot2Date} @ ${state.slot2Time}`
+        : state.slot2Date,
+      state.slot3Date && state.slot3Time
+        ? `${state.slot3Date} @ ${state.slot3Time}`
+        : state.slot3Date,
+    ]
+      .filter(Boolean)
+      .map((s) => `• ${s}`)
+      .join("\n"),
+    referral_source: state.referralSource.join(", "),
+    referral_code: state.referralCode || null,
+    resume_link: resumeUrls.join("\n"),
+    portfolio_link: state.portfolioLink || null,
+    video_link: videoLink || null,
   });
 
-  console.log("fetch fired");
+  if (error) throw new Error(`Submission failed: ${error.message}`);
 }

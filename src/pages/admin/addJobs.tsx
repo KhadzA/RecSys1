@@ -55,7 +55,7 @@ export default function AddJobs() {
     }
   };
 
-  const handleToggle = async (index: number) => {
+  const handleToggle = async (index: string) => {
     try {
       await toggleJob(index);
       await load();
