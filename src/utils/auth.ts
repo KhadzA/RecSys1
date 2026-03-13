@@ -1,46 +1,17 @@
-const SHEET_URL = import.meta.env.VITE_SHEET_URL as string;
-const TOKEN_KEY = "upstaff_token";
-
-// ── Core POST helper — text/plain avoids CORS preflight ──────────────────────
-async function gasPost<T>(body: object): Promise<T> {
-  const res = await fetch(SHEET_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) throw new Error(`Network error: ${res.status}`);
-
-  const data = await res.json();
-  if (data.result !== "success")
-    throw new Error(data.message || "Request failed");
-
-  return data as T;
-}
+import { supabase } from "./supabase";
+import { STATUS_LIST } from "./statuses";
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export async function loginAdmin(
   email: string,
   password: string,
 ): Promise<void> {
-  const data = await gasPost<{ result: string; token: string }>({
-    action: "login",
-    email,
-    password,
-  });
-  sessionStorage.setItem(TOKEN_KEY, data.token);
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message);
 }
 
-export function getToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY);
-}
-
-export function isLoggedIn(): boolean {
-  return !!getToken();
-}
-
-export function logout(): void {
-  sessionStorage.removeItem(TOKEN_KEY);
+export async function logout(): Promise<void> {
+  await supabase.auth.signOut();
 }
 
 // ── Applications ──────────────────────────────────────────────────────────────
@@ -49,50 +20,50 @@ export async function fetchApplications(
   page = 1,
   limit = 10,
 ): Promise<{ data: Application[]; total: number }> {
-  const token = getToken();
-  if (!token) throw new Error("Not logged in");
+  let query = supabase
+    .from("applications")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range((page - 1) * limit, page * limit - 1);
 
-  const res = await gasPost<{
-    result: string;
-    data: Application[];
-    total: number;
-  }>({
-    action: "getData",
-    token,
-    status,
-    page,
-    limit,
-  });
+  if (status !== "All") query = query.eq("status", status);
 
-  return { data: res.data, total: res.total };
+  const { data, error, count } = await query;
+  if (error) throw new Error(error.message);
+
+  return { data: (data ?? []).map(mapRow), total: count ?? 0 };
 }
 
 export async function searchApplications(
   query: string,
 ): Promise<Application[]> {
-  const token = getToken();
-  if (!token) throw new Error("Not logged in");
+  const q = query.toLowerCase();
+  const { data, error } = await supabase
+    .from("applications")
+    .select("*")
+    .or(
+      `full_name.ilike.%${q}%,email.ilike.%${q}%,positions.ilike.%${q}%,status.ilike.%${q}%`,
+    )
+    .order("created_at", { ascending: false });
 
-  const res = await gasPost<{ result: string; data: Application[] }>({
-    action: "search",
-    token,
-    query,
-  });
-
-  return res.data;
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapRow);
 }
 
 export async function fetchCounts(): Promise<Record<string, number>> {
-  const token = getToken();
-  if (!token) throw new Error("Not logged in");
+  const { data, error } = await supabase.from("applications").select("status");
+  if (error) throw new Error(error.message);
 
-  const res = await gasPost<{ result: string; counts: Record<string, number> }>(
-    {
-      action: "getCounts",
-      token,
-    },
-  );
-  return res.counts;
+  const counts: Record<string, number> = { total: 0 };
+  STATUS_LIST.forEach((s) => {
+    counts[s] = 0;
+  });
+  (data ?? []).forEach(({ status }) => {
+    if (counts[status] !== undefined) counts[status]++;
+    counts.total++;
+  });
+
+  return counts;
 }
 
 export async function updateApplicationStatus(
@@ -100,38 +71,86 @@ export async function updateApplicationStatus(
   fullName: string,
   status: string,
 ): Promise<void> {
-  const token = getToken();
-  if (!token) throw new Error("Not logged in");
+  const { error } = await supabase
+    .from("applications")
+    .update({ status })
+    .eq("email", email)
+    .eq("full_name", fullName);
 
-  await gasPost({ action: "updateStatus", token, email, fullName, status });
+  if (error) throw new Error(error.message);
 }
 
 // ── Jobs ──────────────────────────────────────────────────────────────────────
 export async function fetchJobs(): Promise<Job[]> {
-  const data = await gasPost<{ result: string; data: Job[] }>({
-    action: "getJobs",
-  });
-  return data.data;
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) => ({
+    index: row.id,
+    title: row.title,
+    active: row.active,
+  }));
 }
 
 export async function addJob(title: string): Promise<void> {
-  const token = getToken();
-  await gasPost({ action: "addJob", token, title });
+  const { error } = await supabase.from("jobs").insert({ title, active: true });
+  if (error) throw new Error(error.message);
 }
 
-export async function toggleJob(index: number): Promise<void> {
-  const token = getToken();
-  await gasPost({ action: "toggleJob", token, index });
+export async function toggleJob(id: string): Promise<void> {
+  const { data } = await supabase
+    .from("jobs")
+    .select("active")
+    .eq("id", id)
+    .single();
+  const { error } = await supabase
+    .from("jobs")
+    .update({ active: !data?.active })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// ── Row mapper ────────────────────────────────────────────────────────────────
+function mapRow(row: Record<string, unknown>): Application {
+  return {
+    id: row.id as string,
+    timestamp: row.created_at as string,
+    status: row.status as string,
+    fullName: row.full_name as string,
+    email: row.email as string,
+    phone: row.phone as string,
+    address: row.address as string,
+    positions: row.positions as string,
+    employmentType: row.employment_type as string,
+    workSetup: row.work_setup as string,
+    workSchedule: row.work_schedule as string,
+    educationLevel: row.education_level as string,
+    school: row.school as string,
+    course: row.course as string,
+    skills: row.skills as string,
+    tools: row.tools as string,
+    interviewSlots: row.interview_slots as string,
+    referralSource: row.referral_source as string,
+    resumeLink: row.resume_link as string,
+    portfolioLink: row.portfolio_link as string,
+    videoLink: row.video_link as string,
+    notes: row.notes as string,
+  };
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 export interface Job {
-  index: number;
+  index: string;
   title: string;
   active: boolean;
 }
 
 export interface Application {
+  id: string;
   timestamp: string;
   status: string;
   fullName: string;
