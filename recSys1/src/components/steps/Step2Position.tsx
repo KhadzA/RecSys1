@@ -47,27 +47,74 @@ const Step2Position: React.FC<Props> = ({
     field: keyof FormState,
     value: string,
     error?: string,
-  ) => (
-    <div className="field">
-      <label>
-        Position {field === "position1" && <span className="req">*</span>}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(field, e.target.value)}
-        className={error ? "input-error" : ""}
-        disabled={loadingJobs}
-      >
-        <option value="">
-          {loadingJobs ? "Loading positions…" : "Select a position"}
-        </option>
-        {positions.map((p) => (
-          <option key={p}>{p}</option>
-        ))}
-      </select>
-      {error && <div className="field-error">{error}</div>}
-    </div>
-  );
+  ) => {
+    const isOptional = field !== "position1";
+    return (
+      <div className="field">
+        <label>Position {!isOptional && <span className="req">*</span>}</label>
+        <div style={{ position: "relative" }}>
+          <select
+            value={value}
+            onChange={(e) => onChange(field, e.target.value)}
+            className={error ? "input-error" : ""}
+            disabled={loadingJobs}
+            style={{
+              paddingRight: "2.5rem",
+              appearance: "none",
+              WebkitAppearance: "none",
+            }}
+          >
+            <option value="">
+              {loadingJobs
+                ? "Loading positions…"
+                : isOptional
+                  ? "— No preference (skip)"
+                  : "Select a position"}
+            </option>
+            {positions.map((p) => (
+              <option key={p}>{p}</option>
+            ))}
+          </select>
+          <div
+            style={{
+              position: "absolute",
+              right: "0.85rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              pointerEvents: "none",
+              color: "var(--muted)",
+              opacity: 0.5,
+              fontSize: 11,
+            }}
+          >
+            ▼
+          </div>
+        </div>
+        {error && <div className="field-error">{error}</div>}
+        {isOptional && value && (
+          <button
+            type="button"
+            onClick={() => onChange(field, "")}
+            style={{
+              marginTop: 5,
+              fontSize: 11.5,
+              color: "var(--muted)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              opacity: 0.65,
+              textDecoration: "underline",
+              textUnderlineOffset: 2,
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            ✕ Clear selection
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="step-section active">
@@ -95,16 +142,37 @@ const Step2Position: React.FC<Props> = ({
             <label>
               Employment Type <span className="req">*</span>
             </label>
-            <select
-              value={state.employmentType}
-              onChange={(e) => onChange("employmentType", e.target.value)}
-            >
-              <option value="">Select type</option>
-              <option>Full-Time</option>
-              <option>Part-Time</option>
-              <option>Contractual</option>
-              <option>Project-Based</option>
-            </select>
+            <div style={{ position: "relative" }}>
+              <select
+                value={state.employmentType}
+                onChange={(e) => onChange("employmentType", e.target.value)}
+                style={{
+                  paddingRight: "2.5rem",
+                  appearance: "none",
+                  WebkitAppearance: "none",
+                }}
+              >
+                <option value="">Select type</option>
+                <option>Full-Time</option>
+                <option>Part-Time</option>
+                <option>Contractual</option>
+                <option>Project-Based</option>
+              </select>
+              <div
+                style={{
+                  position: "absolute",
+                  right: "0.85rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  color: "var(--muted)",
+                  opacity: 0.5,
+                  fontSize: 11,
+                }}
+              >
+                ▼
+              </div>
+            </div>
           </div>
         </div>
       </div>

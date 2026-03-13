@@ -97,6 +97,7 @@ export default function Dashboard() {
     setPage(1);
     setSearch("");
     setSearchResults(null);
+    setSearching(false);
     setExpanded(null);
     load(tab, 1);
   };
@@ -112,6 +113,7 @@ export default function Dashboard() {
     clearTimeout(searchTimeout.current);
     if (!val.trim()) {
       setSearchResults(null);
+      setSearching(false);
       return;
     }
     setSearching(true);
@@ -217,61 +219,113 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Counts overview */}
+        {/* Counts overview — compact stat strip */}
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-            gap: 12,
-            marginBottom: 24,
-          }}
+          className="form-card"
+          style={{ padding: "20px 28px", marginBottom: 24 }}
         >
-          {[
-            { label: "Total", value: counts.total, color: "var(--accent)" },
-            ...STATUS_LIST.map((s) => ({
-              label: s,
-              value: counts[s] ?? 0,
-              color: STATUS_STYLES[s].color,
-            })),
-          ].map(({ label, value, color }) => (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0,
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Total — always first, larger */}
             <div
-              key={label}
-              className="form-card"
-              onClick={() => label !== "Total" && switchTab(label)}
               style={{
-                padding: "16px 20px",
-                textAlign: "center",
-                cursor: label !== "Total" ? "pointer" : "default",
-                border:
-                  activeTab === label && !isSearching
-                    ? `1.5px solid ${color}`
-                    : undefined,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                paddingRight: 28,
+                marginRight: 28,
+                borderRight: "1.5px solid var(--border)",
               }}
             >
               <div
                 style={{
-                  fontSize: 26,
+                  fontSize: 36,
                   fontWeight: 800,
-                  fontFamily: "Syne, sans-serif",
-                  color,
+                  fontFamily: "Plus Jakarta Sans, sans-serif",
+                  color: "var(--accent)",
+                  lineHeight: 1,
                 }}
               >
-                {value}
+                {counts.total}
               </div>
               <div
                 style={{
-                  fontSize: 11.5,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
                   color: "var(--muted)",
-                  marginTop: 2,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
+                  opacity: 0.6,
+                  marginTop: 5,
                 }}
               >
-                {label}
+                Total
               </div>
             </div>
-          ))}
+
+            {/* Status pills */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                flex: 1,
+              }}
+            >
+              {STATUS_LIST.map((s) => {
+                const st = STATUS_STYLES[s];
+                const count = counts[s] ?? 0;
+                const isActive = activeTab === s && !isSearching;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => switchTab(s)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "6px 13px",
+                      borderRadius: 20,
+                      border: isActive
+                        ? `1.5px solid ${st.color}`
+                        : "1.5px solid var(--border)",
+                      background: isActive ? st.bg : "transparent",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: st.color,
+                        minWidth: 16,
+                        textAlign: "right",
+                      }}
+                    >
+                      {count}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: isActive ? st.color : "var(--muted)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {s}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Search */}
@@ -387,7 +441,10 @@ export default function Dashboard() {
                       : "var(--radius)",
                   }}
                 >
-                  <div onClick={(e) => e.stopPropagation()}>
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ width: 200, flexShrink: 0 }}
+                  >
                     <StatusDropdown
                       value={app.status}
                       onChange={(newStatus) =>
@@ -591,7 +648,7 @@ function Detail({
           style={{
             fontSize: 13,
             color: "var(--text)",
-            fontFamily: "DM Sans, sans-serif",
+            fontFamily: "Inter, sans-serif",
             whiteSpace: "pre-wrap",
             margin: 0,
             lineHeight: 1.6,

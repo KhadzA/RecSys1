@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, ToggleLeft, ToggleRight, Briefcase } from "lucide-react";
+import {
+  Plus,
+  ToggleLeft,
+  ToggleRight,
+  Briefcase,
+  Search,
+  X,
+} from "lucide-react";
 import AdminLayout from "../../components/AdminLayout";
 import { addJob, fetchJobs, toggleJob, type Job } from "../../utils/auth";
 import "/src/styles/apply.css";
@@ -10,6 +17,7 @@ export default function AddJobs() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [title, setTitle] = useState("");
+  const [query, setQuery] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -56,8 +64,13 @@ export default function AddJobs() {
     }
   };
 
-  const active = jobs.filter((j) => j.active);
-  const inactive = jobs.filter((j) => !j.active);
+  const filtered = query.trim()
+    ? jobs.filter((j) => j.title.toLowerCase().includes(query.toLowerCase()))
+    : jobs;
+
+  const active = filtered.filter((j) => j.active);
+  const inactive = filtered.filter((j) => !j.active);
+  const isFiltering = query.trim().length > 0;
 
   return (
     <AdminLayout>
@@ -114,6 +127,66 @@ export default function AddJobs() {
           )}
         </div>
 
+        {/* Search */}
+        <div className="field" style={{ marginBottom: 20 }}>
+          <div style={{ position: "relative" }}>
+            <Search
+              size={15}
+              style={{
+                position: "absolute",
+                left: 14,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--muted)",
+                opacity: 0.5,
+                pointerEvents: "none",
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Search jobs…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              style={{ paddingLeft: 40, paddingRight: query ? 36 : 14 }}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--muted)",
+                  opacity: 0.5,
+                  display: "flex",
+                  alignItems: "center",
+                  padding: 0,
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          {isFiltering && (
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--muted)",
+                marginTop: 6,
+                opacity: 0.7,
+              }}
+            >
+              {filtered.length === 0
+                ? "No jobs match your search."
+                : `${filtered.length} job${filtered.length !== 1 ? "s" : ""} found`}
+            </div>
+          )}
+        </div>
+
         {/* Active jobs */}
         <div className="form-card" style={{ marginBottom: 20 }}>
           <div
@@ -163,7 +236,9 @@ export default function AddJobs() {
                 padding: "8px 0",
               }}
             >
-              No active jobs yet. Add one above.
+              {isFiltering
+                ? "No active jobs match your search."
+                : "No active jobs yet. Add one above."}
             </div>
           )}
 
@@ -172,6 +247,7 @@ export default function AddJobs() {
               <JobRow
                 key={job.index}
                 job={job}
+                query={query}
                 onToggle={() => handleToggle(job.index)}
               />
             ))}
@@ -212,6 +288,7 @@ export default function AddJobs() {
               <JobRow
                 key={job.index}
                 job={job}
+                query={query}
                 onToggle={() => handleToggle(job.index)}
               />
             ))}
@@ -222,7 +299,37 @@ export default function AddJobs() {
   );
 }
 
-function JobRow({ job, onToggle }: { job: Job; onToggle: () => void }) {
+function highlight(text: string, query: string) {
+  if (!query.trim()) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark
+        style={{
+          background: "rgba(62,207,223,0.25)",
+          color: "inherit",
+          borderRadius: 3,
+          padding: "0 1px",
+        }}
+      >
+        {text.slice(idx, idx + query.length)}
+      </mark>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+function JobRow({
+  job,
+  query,
+  onToggle,
+}: {
+  job: Job;
+  query: string;
+  onToggle: () => void;
+}) {
   return (
     <div
       style={{
@@ -242,7 +349,7 @@ function JobRow({ job, onToggle }: { job: Job; onToggle: () => void }) {
           opacity: job.active ? 1 : 0.55,
         }}
       >
-        {job.title}
+        {highlight(job.title, query)}
       </div>
       <div
         style={{

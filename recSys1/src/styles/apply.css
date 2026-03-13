@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Oswald:wght@200..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap");
 
 :root {
   --bg: #f0f4f8;
@@ -23,7 +23,7 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -76,7 +76,7 @@ body::before {
   padding: 48px 24px 80px;
 }
 .page-title {
-  font-family: "Syne", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 800;
   font-size: clamp(26px, 5vw, 42px);
   line-height: 1.1;
@@ -181,7 +181,7 @@ body::before {
   }
 }
 .section-heading {
-  font-family: "Syne", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 800;
   font-size: 20px;
   margin-bottom: 6px;
@@ -195,7 +195,7 @@ body::before {
   line-height: 1.5;
 }
 .sub-heading {
-  font-family: "Syne", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 700;
   font-size: 15px;
   color: var(--text);
@@ -261,7 +261,7 @@ body::before {
   border-radius: 10px;
   padding: 12px 14px;
   color: var(--text);
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 14px;
   outline: none;
   transition:
@@ -420,7 +420,7 @@ body::before {
   border: none;
   background: transparent;
   color: var(--text);
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 14px;
   outline: none;
   flex: 1;
@@ -488,7 +488,7 @@ body::before {
   gap: 12px;
 }
 .btn {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 14px;
   font-weight: 500;
   padding: 12px 28px;
@@ -611,7 +611,7 @@ body::before {
   }
 }
 .success-title {
-  font-family: "Syne", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 10px;
@@ -659,7 +659,7 @@ body::before {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 .dm-toggle:hover {
   background: rgba(8, 14, 46, 0.1);

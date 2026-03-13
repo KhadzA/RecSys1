@@ -61,6 +61,7 @@ export default function StatusDropdown({
           opacity: disabled ? 0.5 : 1,
           transition: "all 0.2s ease",
           minWidth: 160,
+          width: 200,
           justifyContent: "center",
           fontFamily: "inherit",
           whiteSpace: "nowrap",
