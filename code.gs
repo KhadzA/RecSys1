@@ -1,9 +1,13 @@
-// ── Sheet names ──────────────────────────────────────────────────────────────
+// ── Spreadsheet config ────────────────────────────────────────────────────────
+var SPREADSHEET_ID = "1BF4SgOH_7s7jpEMcAt9LNONM7MYJiOYzrM3Zr2VrD7I";
+// Get this from the URL: docs.google.com/spreadsheets/d/THIS_PART/edit
+
+// ── Sheet names ───────────────────────────────────────────────────────────────
 var SHEET_NAME = "Applications";
 var LOGS_NAME = "Admin Logs";
 var JOBS_NAME = "Jobs";
 
-// ── Styling ──────────────────────────────────────────────────────────────────
+// ── Styling ───────────────────────────────────────────────────────────────────
 var HEADER_COLOR = "#1a1f35";
 var ACCENT_COLOR = "#3ecfdf";
 var STATUS_COL = 2;
@@ -45,12 +49,18 @@ var HEADERS = [
   "Portfolio Link",
   "Video Intro Link",
   "Notes",
+  "Supabase ID", // ← used for sync matching
 ];
 
 var LOG_HEADERS = ["Timestamp", "Event", "Email", "Info"];
 var JOBS_HEADERS = ["Title", "Active", "Date Added"];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Spreadsheet helper ────────────────────────────────────────────────────────
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function toBulletLines(items) {
   return items
     .filter(Boolean)
@@ -71,7 +81,7 @@ function now() {
 }
 
 function writeLog(event, email, info) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(LOGS_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(LOGS_NAME);
@@ -85,7 +95,7 @@ function verifyToken(token) {
   return token === props.getProperty("SESSION_TOKEN");
 }
 
-// ── Entry point ──────────────────────────────────────────────────────────────
+// ── Entry point ───────────────────────────────────────────────────────────────
 function doPost(e) {
   try {
     var data;
@@ -95,6 +105,11 @@ function doPost(e) {
       return jsonResponse({ result: "error", message: "Invalid JSON" });
     }
 
+    // Supabase webhook format — route by type first
+    if (data.type === "INSERT") return handleWebhookInsert(data);
+    if (data.type === "UPDATE") return handleWebhookUpdate(data);
+
+    // Admin dashboard / legacy actions
     switch (data.action) {
       case "login":
         return handleLogin(data);
@@ -113,7 +128,7 @@ function doPost(e) {
       case "updateStatus":
         return handleUpdateStatus(data);
       case "search":
-        return handleSearch(data); // ← this was missing!
+        return handleSearch(data);
       default:
         return jsonResponse({
           result: "error",
@@ -126,6 +141,114 @@ function doPost(e) {
       message: "Server error: " + err.message,
     });
   }
+}
+
+// ── Supabase webhook — INSERT ─────────────────────────────────────────────────
+function handleWebhookInsert(data) {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    setupSheet(sheet);
+  }
+  if (sheet.getLastRow() === 0) setupSheet(sheet);
+
+  var row = buildRowFromWebhook(data.record);
+  var newRowIndex = sheet.getLastRow() + 1;
+  sheet.appendRow(row);
+  formatDataRow(sheet, newRowIndex);
+  applyStatusColor(sheet, newRowIndex, data.record.status || "For Interview");
+  writeLog(
+    "WEBHOOK_INSERT",
+    data.record.email || "",
+    data.record.full_name || "",
+  );
+
+  return jsonResponse({ result: "success" });
+}
+
+// ── Supabase webhook — UPDATE ─────────────────────────────────────────────────
+function handleWebhookUpdate(data) {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet)
+    return jsonResponse({ result: "error", message: "Sheet not found" });
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return jsonResponse({ result: "error", message: "No rows" });
+
+  // Supabase ID is in the last column (col 22)
+  var idCol = HEADERS.length;
+  var ids = sheet.getRange(2, idCol, lastRow - 1, 1).getValues();
+  var targetRow = -1;
+
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i][0] === data.record.id) {
+      targetRow = i + 2;
+      break;
+    }
+  }
+
+  if (targetRow === -1) {
+    // Row not found — insert it instead
+    var row = buildRowFromWebhook(data.record);
+    var newRowIndex = sheet.getLastRow() + 1;
+    sheet.appendRow(row);
+    formatDataRow(sheet, newRowIndex);
+    applyStatusColor(sheet, newRowIndex, data.record.status || "For Interview");
+    writeLog(
+      "WEBHOOK_INSERT_FALLBACK",
+      data.record.email || "",
+      data.record.full_name || "",
+    );
+    return jsonResponse({ result: "success", action: "inserted" });
+  }
+
+  // Update status column and re-color row
+  sheet.getRange(targetRow, STATUS_COL).setValue(data.record.status);
+  applyStatusColor(sheet, targetRow, data.record.status);
+  writeLog(
+    "WEBHOOK_UPDATE",
+    data.record.email || "",
+    data.record.full_name + " → " + data.record.status,
+  );
+
+  return jsonResponse({ result: "success", action: "updated" });
+}
+
+// ── Build row from Supabase webhook payload ───────────────────────────────────
+function buildRowFromWebhook(r) {
+  return [
+    r.created_at || now(),
+    r.status || "For Interview",
+    r.full_name || "",
+    r.email || "",
+    r.phone || "",
+    r.address || "",
+    r.positions || "",
+    r.employment_type || "",
+    r.work_setup || "",
+    r.work_schedule || "",
+    r.education_level || "",
+    r.school || "",
+    r.course || "",
+    r.skills || "",
+    r.tools || "",
+    r.interview_slots || "",
+    r.referral_source
+      ? r.referral_code
+        ? r.referral_source.replace(
+            "Referral",
+            "Referral [" + r.referral_code + "]",
+          )
+        : r.referral_source
+      : "",
+    r.resume_link || "",
+    r.portfolio_link || "",
+    r.video_link || "",
+    r.notes || "",
+    r.id || "", // Supabase ID — last column
+  ];
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────────
@@ -151,7 +274,7 @@ function handleGetData(data) {
     return jsonResponse({ result: "error", message: "Unauthorized" });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet || sheet.getLastRow() < 2) {
     return jsonResponse({ result: "success", data: [], total: 0 });
@@ -161,7 +284,6 @@ function handleGetData(data) {
     .getRange(2, 1, sheet.getLastRow() - 1, HEADERS.length)
     .getValues();
 
-  // Map all rows
   var all = rows
     .map(function (row) {
       return {
@@ -186,27 +308,25 @@ function handleGetData(data) {
         portfolioLink: row[18],
         videoLink: row[19],
         notes: row[20],
+        supabaseId: row[21],
       };
     })
     .filter(function (r) {
       return r.fullName || r.email;
-    }); // skip blank rows
+    });
 
-  // Filter by status if provided
   if (data.status && data.status !== "All") {
     all = all.filter(function (r) {
       return r.status === data.status;
     });
   }
 
-  // Most recent first
   all = all.reverse();
 
   var total = all.length;
   var limit = data.limit || 10;
   var page = data.page || 1;
   var start = (page - 1) * limit;
-
   var paged = all.slice(start, start + limit);
 
   return jsonResponse({ result: "success", data: paged, total: total });
@@ -218,10 +338,8 @@ function handleGetCounts(data) {
     return jsonResponse({ result: "error", message: "Unauthorized" });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
-
-  // Build counts object dynamically from STATUS_COLORS keys
   var counts = { total: 0 };
   Object.keys(STATUS_COLORS).forEach(function (s) {
     counts[s] = 0;
@@ -249,18 +367,17 @@ function handleUpdateStatus(data) {
     return jsonResponse({ result: "error", message: "Unauthorized" });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet)
     return jsonResponse({ result: "error", message: "Sheet not found" });
 
-  // Find row by email + fullName match
   var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
   var targetRow = -1;
 
   for (var i = 0; i < rows.length; i++) {
     if (rows[i][3] === data.email && rows[i][2] === data.fullName) {
-      targetRow = i + 2; // 1-based + header offset
+      targetRow = i + 2;
       break;
     }
   }
@@ -276,13 +393,13 @@ function handleUpdateStatus(data) {
   return jsonResponse({ result: "success" });
 }
 
-// ── Search all rows server-side ───────────────────────────────────────────────
+// ── Search ────────────────────────────────────────────────────────────────────
 function handleSearch(data) {
   if (!verifyToken(data.token)) {
     return jsonResponse({ result: "error", message: "Unauthorized" });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet || sheet.getLastRow() < 2) {
     return jsonResponse({ result: "success", data: [] });
@@ -294,8 +411,8 @@ function handleSearch(data) {
   var rows = sheet
     .getRange(2, 1, sheet.getLastRow() - 1, HEADERS.length)
     .getValues();
-
   var results = [];
+
   rows.forEach(function (row) {
     var searchable = [row[2], row[3], row[6], row[1]].join(" ").toLowerCase();
     if (searchable.indexOf(query) !== -1) {
@@ -321,6 +438,7 @@ function handleSearch(data) {
         portfolioLink: row[18],
         videoLink: row[19],
         notes: row[20],
+        supabaseId: row[21],
       });
     }
   });
@@ -328,18 +446,16 @@ function handleSearch(data) {
   return jsonResponse({ result: "success", data: results.reverse() });
 }
 
-// ── Submit application ────────────────────────────────────────────────────────
+// ── Submit application (legacy — kept for direct form fallback) ───────────────
 function handleSubmit(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
   if (sheet.getLastRow() === 0) setupSheet(sheet);
 
-  // If files were uploaded, save to Drive and use direct file links
   if (data.files && data.files.length > 0) {
     var links = saveFilesToDrive(data.firstName, data.lastName, data.files);
     data.resumeLink = links.resumeLink;
-    // Only overwrite videoLink if a file was uploaded (keep typed link as fallback)
     if (links.videoLink) data.videoLink = links.videoLink;
   }
 
@@ -376,7 +492,6 @@ function saveFilesToDrive(firstName, lastName, files) {
   var folderName =
     [firstName, lastName].filter(Boolean).join("_") ||
     "Applicant_" + Date.now();
-
   var folder = parent.createFolder(folderName);
   folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
@@ -392,8 +507,6 @@ function saveFilesToDrive(firstName, lastName, files) {
         file.name,
       );
       var saved = folder.createFile(blob);
-
-      // Make each file individually viewable
       saved.setSharing(
         DriveApp.Access.ANYONE_WITH_LINK,
         DriveApp.Permission.VIEW,
@@ -403,7 +516,6 @@ function saveFilesToDrive(firstName, lastName, files) {
         "https://drive.google.com/file/d/" + saved.getId() + "/view";
       writeLog("FILE_SAVED", "", file.name + " → " + fileUrl);
 
-      // Separate videos from resume/cert files
       if (file.mimeType && file.mimeType.indexOf("video/") === 0) {
         videoLink = fileUrl;
       } else {
@@ -414,15 +526,12 @@ function saveFilesToDrive(firstName, lastName, files) {
     }
   });
 
-  return {
-    resumeLink: resumeLinks.join("\n"), // one link per line if multiple files
-    videoLink: videoLink,
-  };
+  return { resumeLink: resumeLinks.join("\n"), videoLink: videoLink };
 }
 
-// ── Get jobs (public — no token needed so applicant form can fetch) ────────────
+// ── Get jobs ──────────────────────────────────────────────────────────────────
 function handleGetJobs() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(JOBS_NAME);
   if (!sheet || sheet.getLastRow() < 2) {
     return jsonResponse({ result: "success", data: [] });
@@ -432,7 +541,7 @@ function handleGetJobs() {
   var jobs = rows
     .map(function (row, i) {
       return {
-        index: i + 2, // 1-based sheet row
+        index: i + 2,
         title: row[0],
         active: row[1] === true || row[1] === "TRUE" || row[1] === "Active",
       };
@@ -453,7 +562,7 @@ function handleAddJob(data) {
     return jsonResponse({ result: "error", message: "Title is required" });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(JOBS_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(JOBS_NAME);
@@ -465,18 +574,18 @@ function handleAddJob(data) {
   return jsonResponse({ result: "success" });
 }
 
-// ── Toggle job active/inactive ────────────────────────────────────────────────
+// ── Toggle job ────────────────────────────────────────────────────────────────
 function handleToggleJob(data) {
   if (!verifyToken(data.token)) {
     return jsonResponse({ result: "error", message: "Unauthorized" });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(JOBS_NAME);
   if (!sheet)
     return jsonResponse({ result: "error", message: "Jobs sheet not found" });
 
-  var rowIndex = data.index; // row number in sheet (2-based)
+  var rowIndex = data.index;
   var current = sheet.getRange(rowIndex, 2).getValue();
   var newVal = !(
     current === true ||
@@ -488,7 +597,7 @@ function handleToggleJob(data) {
   return jsonResponse({ result: "success" });
 }
 
-// ── Build application row ────────────────────────────────────────────────────
+// ── Build row (legacy submit) ─────────────────────────────────────────────────
 function buildRow(d) {
   var fullName =
     [d.firstName, d.lastName].filter(Boolean).join(" ") || d.fullName || "";
@@ -558,10 +667,11 @@ function buildRow(d) {
     d.portfolioLink || "",
     d.videoLink || "",
     d.notes || "",
+    d.supabaseId || "", // Supabase ID — last column
   ];
 }
 
-// ── Sheet setup functions ────────────────────────────────────────────────────
+// ── Sheet setup ───────────────────────────────────────────────────────────────
 function setupSheet(sheet) {
   sheet.appendRow(HEADERS);
   var headerRange = sheet.getRange(1, 1, 1, HEADERS.length);
@@ -589,7 +699,7 @@ function setupSheet(sheet) {
 
   var colWidths = [
     220, 150, 220, 280, 180, 300, 440, 200, 200, 260, 220, 260, 260, 380, 380,
-    360, 240, 340, 320, 320, 320,
+    360, 240, 340, 320, 320, 320, 200,
   ];
   colWidths.forEach(function (w, i) {
     sheet.setColumnWidth(i + 1, w);
@@ -654,16 +764,13 @@ function setupJobsSheet(sheet) {
 }
 
 function addStatusDropdown(sheet, fromRow, toRow) {
-  // Write status list to a hidden helper sheet
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var helper =
     ss.getSheetByName("_StatusList") || ss.insertSheet("_StatusList");
   helper.hideSheet();
   Object.keys(STATUS_COLORS).forEach(function (s, i) {
     helper.getRange(i + 1, 1).setValue(s);
   });
-
-  // Use range-based validation instead of list (no char limit)
   var range = helper.getRange(1, 1, Object.keys(STATUS_COLORS).length, 1);
   var rule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(range, true)
@@ -708,7 +815,6 @@ function applyStatusColor(sheet, rowIndex, statusValue) {
     fg: "#64748b",
     tint: "#f8fafc",
   };
-
   sheet.getRange(rowIndex, 1, 1, HEADERS.length).setBackground(colors.tint);
   sheet
     .getRange(rowIndex, STATUS_COL)
@@ -728,17 +834,50 @@ function applyStatusColor(sheet, rowIndex, statusValue) {
     );
 }
 
+// ── onEdit — sync status change from Sheets back to Supabase ─────────────────
 function onEdit(e) {
   var sheet = e.range.getSheet();
   if (sheet.getName() !== SHEET_NAME) return;
   if (e.range.getColumn() !== STATUS_COL) return;
   if (e.range.getRow() < 2) return;
-  applyStatusColor(sheet, e.range.getRow(), e.range.getValue());
+
+  var row = e.range.getRow();
+  var newStatus = e.range.getValue();
+  var supabaseId = sheet.getRange(row, HEADERS.length).getValue(); // last column
+
+  applyStatusColor(sheet, row, newStatus);
+
+  if (!supabaseId) return; // no Supabase ID — skip sync
+
+  var props = PropertiesService.getScriptProperties();
+  var supabaseUrl = props.getProperty("SUPABASE_URL");
+  var supabaseKey = props.getProperty("SUPABASE_SERVICE_KEY");
+  if (!supabaseUrl || !supabaseKey) return;
+
+  try {
+    UrlFetchApp.fetch(
+      supabaseUrl + "/rest/v1/applications?id=eq." + supabaseId,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: supabaseKey,
+          Authorization: "Bearer " + supabaseKey,
+          Prefer: "return=minimal",
+        },
+        payload: JSON.stringify({ status: newStatus }),
+        muteHttpExceptions: true,
+      },
+    );
+    writeLog("SHEETS_SYNC", "", "Row " + row + " → " + newStatus);
+  } catch (err) {
+    writeLog("SHEETS_SYNC_ERROR", "", err.message);
+  }
 }
 
-// ── One-time utilities ───────────────────────────────────────────────────────
+// ── One-time utilities ────────────────────────────────────────────────────────
 function fixHeaderRow() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME) || ss.getActiveSheet();
   var range = sheet.getRange(1, 1, 1, sheet.getLastColumn());
   range
@@ -766,11 +905,11 @@ function fixHeaderRow() {
 }
 
 function resizeColumns() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME) || ss.getActiveSheet();
   var colWidths = [
     220, 150, 220, 280, 180, 300, 440, 200, 200, 260, 220, 260, 260, 380, 380,
-    360, 240, 340, 320, 320, 320,
+    360, 240, 340, 320, 320, 320, 200,
   ];
   colWidths.forEach(function (w, i) {
     sheet.setColumnWidth(i + 1, w);
@@ -779,7 +918,7 @@ function resizeColumns() {
 }
 
 function reformatExistingSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME) || ss.getActiveSheet();
   var last = sheet.getLastRow();
   if (last < 2) return;
@@ -791,14 +930,13 @@ function reformatExistingSheet() {
 }
 
 function migrateStatuses() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet || sheet.getLastRow() < 2) return;
 
   var renames = {
     "Hired|Resigned": "Resigned",
     Pending: "For Interview",
-    // add any other old → new mappings here
   };
 
   var rows = sheet
