@@ -15,7 +15,7 @@ import { submitApplication } from "../../utils/submit";
 import "/src/styles/apply.css";
 
 // Set to false before going live
-const DEV_MODE = true;
+const DEV_MODE = false;
 
 const TOTAL_STEPS = 5;
 
