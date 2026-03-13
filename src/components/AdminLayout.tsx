@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Briefcase, LogOut, Menu, X } from "lucide-react";
-import TopBar from "../components/TopBar";
+import TopBar from "./TopBar";
 import { logout } from "../utils/auth";
 import "/src/styles/apply.css";
 import "./AdminLayout.css";
