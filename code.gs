@@ -1,6 +1,11 @@
-// ── Spreadsheet config ────────────────────────────────────────────────────────
-var SPREADSHEET_ID = "1BF4SgOH_7s7jpEMcAt9LNONM7MYJiOYzrM3Zr2VrD7I";
-// Get this from the URL: docs.google.com/spreadsheets/d/THIS_PART/edit
+// ── Config ────────────────────────────────────────────────────────────────────
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+// Get from URL: docs.google.com/spreadsheets/d/THIS_PART/edit
+
+// const DRIVE_PARENT_FOLDER_ID = process.env.DRIVE_PARENT_FOLDER_ID;
+const DRIVE_PARENT_FOLDER_URL = `https://drive.google.com/drive/folders/${DRIVE_PARENT_FOLDER_ID}`;
+// Get from URL: drive.google.com/drive/folders/THIS_PART
+// All applicant sub-folders will be created inside this folder
 
 // ── Sheet names ───────────────────────────────────────────────────────────────
 var SHEET_NAME = "Applications";
@@ -28,29 +33,53 @@ var STATUS_COLORS = {
 };
 
 var HEADERS = [
-  "Timestamp",
-  "Status",
-  "Full Name",
-  "Email",
-  "Phone",
-  "Address",
-  "Positions",
-  "Employment Type",
-  "Work Setup",
-  "Work Schedule",
-  "Education Level",
-  "School",
-  "Course",
-  "Skills",
-  "Tools",
-  "Interview Slots",
-  "Referral Source",
-  "Resume / Docs Link",
-  "Portfolio Link",
-  "Video Intro Link",
-  "Notes",
-  "Supabase ID", // ← used for sync matching
+  "Timestamp", // col 1  — never synced
+  "Status", // col 2  → status
+  "Full Name", // col 3  → full_name
+  "Email", // col 4  → email
+  "Phone", // col 5  → phone
+  "Address", // col 6  → address
+  "Positions", // col 7  → positions
+  "Employment Type", // col 8  → employment_type
+  "Work Setup", // col 9  → work_setup
+  "Work Schedule", // col 10 → work_schedule
+  "Education Level", // col 11 → education_level
+  "School", // col 12 → school
+  "Course", // col 13 → course
+  "Skills", // col 14 → skills
+  "Tools", // col 15 → tools
+  "Interview Slots", // col 16 → interview_slots
+  "Referral Source", // col 17 → referral_source
+  "Resume / Docs Link", // col 18 → resume_link
+  "Portfolio Link", // col 19 → portfolio_link
+  "Video Intro Link", // col 20 → video_link
+  "Notes", // col 21 → notes
+  "Supabase ID", // col 22 — never synced (used for matching)
 ];
+
+// Maps sheet column number → Supabase field name
+var COL_TO_FIELD = {
+  2: "status",
+  3: "full_name",
+  4: "email",
+  5: "phone",
+  6: "address",
+  7: "positions",
+  8: "employment_type",
+  9: "work_setup",
+  10: "work_schedule",
+  11: "education_level",
+  12: "school",
+  13: "course",
+  14: "skills",
+  15: "tools",
+  16: "interview_slots",
+  17: "referral_source",
+  18: "resume_link",
+  19: "portfolio_link",
+  20: "video_link",
+  21: "notes",
+};
 
 var LOG_HEADERS = ["Timestamp", "Event", "Email", "Info"];
 var JOBS_HEADERS = ["Title", "Active", "Date Added"];
@@ -58,6 +87,22 @@ var JOBS_HEADERS = ["Title", "Active", "Date Added"];
 // ── Spreadsheet helper ────────────────────────────────────────────────────────
 function getSpreadsheet() {
   return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+// ── Drive helper ──────────────────────────────────────────────────────────────
+function getDriveParentFolder() {
+  var parts = DRIVE_PARENT_FOLDER_URL.split("/folders/");
+  var folderId = parts[parts.length - 1].split("?")[0];
+  try {
+    return DriveApp.getFolderById(folderId);
+  } catch (e) {
+    writeLog(
+      "DRIVE_FOLDER_ERROR",
+      "",
+      "Could not open parent folder: " + e.message,
+    );
+    return DriveApp.getRootFolder();
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -95,6 +140,26 @@ function verifyToken(token) {
   return token === props.getProperty("SESSION_TOKEN");
 }
 
+// Shared helper to PATCH a Supabase record
+function patchSupabase(supabaseId, fields) {
+  var props = PropertiesService.getScriptProperties();
+  var supabaseUrl = props.getProperty("SUPABASE_URL");
+  var supabaseKey = props.getProperty("SUPABASE_SERVICE_KEY");
+  if (!supabaseUrl || !supabaseKey || !supabaseId) return;
+
+  UrlFetchApp.fetch(supabaseUrl + "/rest/v1/applications?id=eq." + supabaseId, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: supabaseKey,
+      Authorization: "Bearer " + supabaseKey,
+      Prefer: "return=minimal",
+    },
+    payload: JSON.stringify(fields),
+    muteHttpExceptions: true,
+  });
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 function doPost(e) {
   try {
@@ -105,11 +170,10 @@ function doPost(e) {
       return jsonResponse({ result: "error", message: "Invalid JSON" });
     }
 
-    // Supabase webhook format — route by type first
+    // Supabase webhook — route by type first
     if (data.type === "INSERT") return handleWebhookInsert(data);
     if (data.type === "UPDATE") return handleWebhookUpdate(data);
 
-    // Admin dashboard / legacy actions
     switch (data.action) {
       case "login":
         return handleLogin(data);
@@ -153,16 +217,26 @@ function handleWebhookInsert(data) {
   }
   if (sheet.getLastRow() === 0) setupSheet(sheet);
 
-  var row = buildRowFromWebhook(data.record);
+  var r = data.record;
+
+  // Try Drive migration but don't let it block the Sheets write
+  try {
+    var driveResumeLink = migrateFilesToDrive(r.full_name, r.resume_link, r.id);
+    if (driveResumeLink && driveResumeLink !== r.resume_link) {
+      patchSupabase(r.id, { resume_link: driveResumeLink });
+      r.resume_link = driveResumeLink;
+    }
+  } catch (err) {
+    writeLog("DRIVE_MIGRATE_FAILED", r.email || "", err.message);
+    // Continue anyway — still write to Sheets with original links
+  }
+
+  var row = buildRowFromWebhook(r);
   var newRowIndex = sheet.getLastRow() + 1;
   sheet.appendRow(row);
   formatDataRow(sheet, newRowIndex);
-  applyStatusColor(sheet, newRowIndex, data.record.status || "For Interview");
-  writeLog(
-    "WEBHOOK_INSERT",
-    data.record.email || "",
-    data.record.full_name || "",
-  );
+  applyStatusColor(sheet, newRowIndex, r.status || "For Interview");
+  writeLog("WEBHOOK_INSERT", r.email || "", r.full_name || "");
 
   return jsonResponse({ result: "success" });
 }
@@ -177,7 +251,6 @@ function handleWebhookUpdate(data) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return jsonResponse({ result: "error", message: "No rows" });
 
-  // Supabase ID is in the last column (col 22)
   var idCol = HEADERS.length;
   var ids = sheet.getRange(2, idCol, lastRow - 1, 1).getValues();
   var targetRow = -1;
@@ -190,7 +263,7 @@ function handleWebhookUpdate(data) {
   }
 
   if (targetRow === -1) {
-    // Row not found — insert it instead
+    // Row not found — insert instead
     var row = buildRowFromWebhook(data.record);
     var newRowIndex = sheet.getLastRow() + 1;
     sheet.appendRow(row);
@@ -204,16 +277,150 @@ function handleWebhookUpdate(data) {
     return jsonResponse({ result: "success", action: "inserted" });
   }
 
-  // Update status column and re-color row
-  sheet.getRange(targetRow, STATUS_COL).setValue(data.record.status);
-  applyStatusColor(sheet, targetRow, data.record.status);
-  writeLog(
-    "WEBHOOK_UPDATE",
-    data.record.email || "",
-    data.record.full_name + " → " + data.record.status,
-  );
+  var r = data.record;
+
+  // ── FIX: Migrate file to Drive on UPDATE if resume_link is still a Supabase URL ──
+  // This handles the common case where the INSERT webhook fires before the file
+  // upload completes, so resume_link was empty at INSERT time and only arrives
+  // on the subsequent UPDATE webhook.
+  if (
+    r.resume_link &&
+    r.resume_link.indexOf("drive.google.com") === -1 &&
+    r.resume_link.indexOf("supabase.co") !== -1
+  ) {
+    try {
+      var driveResumeLink = migrateFilesToDrive(
+        r.full_name,
+        r.resume_link,
+        r.id,
+      );
+      if (driveResumeLink && driveResumeLink !== r.resume_link) {
+        patchSupabase(r.id, { resume_link: driveResumeLink });
+        r.resume_link = driveResumeLink;
+        writeLog("DRIVE_MIGRATE_UPDATE_OK", r.email || "", driveResumeLink);
+      }
+    } catch (err) {
+      writeLog("DRIVE_MIGRATE_FAILED_UPDATE", r.email || "", err.message);
+      // Continue — still update Sheets with whatever link we have
+    }
+  }
+
+  // Update ALL fields from Supabase into the sheet row (skip col 1 = Timestamp, col 22 = Supabase ID)
+  var updatedRow = buildRowFromWebhook(r);
+  for (var col = 2; col <= HEADERS.length - 1; col++) {
+    sheet.getRange(targetRow, col).setValue(updatedRow[col - 1]);
+  }
+
+  applyStatusColor(sheet, targetRow, r.status);
+  writeLog("WEBHOOK_UPDATE", r.email || "", r.full_name + " → " + r.status);
 
   return jsonResponse({ result: "success", action: "updated" });
+}
+
+// ── Migrate files: Supabase Storage → Google Drive ────────────────────────────
+// Downloads each file from Supabase Storage public URL, saves to a Drive
+// sub-folder named after the applicant, returns new Drive file URLs.
+function migrateFilesToDrive(fullName, resumeLink, supabaseId) {
+  if (!resumeLink || !resumeLink.trim()) {
+    writeLog("DRIVE_MIGRATE_SKIP", "", "No resume link provided");
+    return resumeLink;
+  }
+
+  var parent = getDriveParentFolder();
+  var folderName =
+    (fullName || "Applicant").trim() +
+    (supabaseId ? "_" + supabaseId.slice(0, 8) : "");
+
+  var existing = parent.getFoldersByName(folderName);
+  var folder = existing.hasNext()
+    ? existing.next()
+    : parent.createFolder(folderName);
+
+  try {
+    folder.setSharing(
+      DriveApp.Access.ANYONE_WITH_LINK,
+      DriveApp.Permission.VIEW,
+    );
+  } catch (e) {
+    writeLog(
+      "DRIVE_SHARING_WARN",
+      "",
+      "Could not set folder sharing: " + e.message,
+    );
+  }
+
+  var links = resumeLink.split("\n").filter(Boolean);
+  var driveLinks = [];
+
+  writeLog(
+    "DRIVE_MIGRATE_START",
+    "",
+    "Links to process: " + links.length + " → " + resumeLink,
+  );
+
+  links.forEach(function (url) {
+    url = url.trim();
+    if (!url) return;
+
+    if (url.indexOf("drive.google.com") !== -1) {
+      driveLinks.push(url);
+      return;
+    }
+
+    try {
+      writeLog("DRIVE_MIGRATE_FETCHING", "", url);
+
+      var response = UrlFetchApp.fetch(url, {
+        muteHttpExceptions: true,
+        followRedirects: true,
+      });
+
+      var code = response.getResponseCode();
+      writeLog("DRIVE_MIGRATE_FETCH_CODE", "", "HTTP " + code + " for " + url);
+
+      if (code !== 200) {
+        driveLinks.push(url);
+        return;
+      }
+
+      var blob = response.getBlob();
+      var urlPath = url.split("?")[0];
+      var segments = urlPath.split("/");
+      var fileName =
+        decodeURIComponent(segments[segments.length - 1]) || "resume";
+      blob.setName(fileName);
+
+      writeLog(
+        "DRIVE_MIGRATE_SAVING",
+        "",
+        "Saving: " + fileName + " size: " + blob.getBytes().length,
+      );
+
+      var file = folder.createFile(blob);
+      try {
+        file.setSharing(
+          DriveApp.Access.ANYONE_WITH_LINK,
+          DriveApp.Permission.VIEW,
+        );
+      } catch (e) {
+        writeLog(
+          "DRIVE_SHARING_WARN",
+          "",
+          "Could not set file sharing: " + e.message,
+        );
+      }
+
+      var driveUrl =
+        "https://drive.google.com/file/d/" + file.getId() + "/view";
+      driveLinks.push(driveUrl);
+      writeLog("DRIVE_MIGRATE_OK", "", fileName + " → " + driveUrl);
+    } catch (err) {
+      driveLinks.push(url);
+      writeLog("DRIVE_MIGRATE_ERROR", "", url + " : " + err.message);
+    }
+  });
+
+  return driveLinks.join("\n");
 }
 
 // ── Build row from Supabase webhook payload ───────────────────────────────────
@@ -247,7 +454,7 @@ function buildRowFromWebhook(r) {
     r.portfolio_link || "",
     r.video_link || "",
     r.notes || "",
-    r.id || "", // Supabase ID — last column
+    r.id || "",
   ];
 }
 
@@ -283,7 +490,6 @@ function handleGetData(data) {
   var rows = sheet
     .getRange(2, 1, sheet.getLastRow() - 1, HEADERS.length)
     .getValues();
-
   var all = rows
     .map(function (row) {
       return {
@@ -327,9 +533,12 @@ function handleGetData(data) {
   var limit = data.limit || 10;
   var page = data.page || 1;
   var start = (page - 1) * limit;
-  var paged = all.slice(start, start + limit);
 
-  return jsonResponse({ result: "success", data: paged, total: total });
+  return jsonResponse({
+    result: "success",
+    data: all.slice(start, start + limit),
+    total: total,
+  });
 }
 
 // ── Get status counts ─────────────────────────────────────────────────────────
@@ -446,7 +655,7 @@ function handleSearch(data) {
   return jsonResponse({ result: "success", data: results.reverse() });
 }
 
-// ── Submit application (legacy — kept for direct form fallback) ───────────────
+// ── Submit (legacy fallback) ──────────────────────────────────────────────────
 function handleSubmit(data) {
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
@@ -461,7 +670,6 @@ function handleSubmit(data) {
 
   var row = buildRow(data);
   var newRowIndex = sheet.getLastRow() + 1;
-
   sheet.appendRow(row);
   formatDataRow(sheet, newRowIndex);
   applyStatusColor(sheet, newRowIndex, row[STATUS_COL - 1]);
@@ -474,21 +682,9 @@ function handleSubmit(data) {
   return jsonResponse({ result: "success" });
 }
 
-// ── Save files to Drive ───────────────────────────────────────────────────────
+// ── Save files directly to Drive (legacy submit path) ─────────────────────────
 function saveFilesToDrive(firstName, lastName, files) {
-  var props = PropertiesService.getScriptProperties();
-  var folderId = props.getProperty("DRIVE_FOLDER_ID");
-
-  var parent;
-  try {
-    parent = folderId
-      ? DriveApp.getFolderById(folderId)
-      : DriveApp.getRootFolder();
-  } catch (e) {
-    writeLog("DRIVE_FOLDER_ERROR", "", e.message);
-    parent = DriveApp.getRootFolder();
-  }
-
+  var parent = getDriveParentFolder();
   var folderName =
     [firstName, lastName].filter(Boolean).join("_") ||
     "Applicant_" + Date.now();
@@ -587,12 +783,11 @@ function handleToggleJob(data) {
 
   var rowIndex = data.index;
   var current = sheet.getRange(rowIndex, 2).getValue();
-  var newVal = !(
-    current === true ||
-    current === "TRUE" ||
-    current === "Active"
-  );
-  sheet.getRange(rowIndex, 2).setValue(newVal);
+  sheet
+    .getRange(rowIndex, 2)
+    .setValue(
+      !(current === true || current === "TRUE" || current === "Active"),
+    );
 
   return jsonResponse({ result: "success" });
 }
@@ -667,8 +862,50 @@ function buildRow(d) {
     d.portfolioLink || "",
     d.videoLink || "",
     d.notes || "",
-    d.supabaseId || "", // Supabase ID — last column
+    d.supabaseId || "",
   ];
+}
+
+// ── onEdit — sync ANY cell change in Sheets → Supabase ───────────────────────
+// ⚠️  MUST be an INSTALLABLE TRIGGER — simple triggers cannot use UrlFetchApp!
+// Setup: Apps Script → Triggers (clock icon on left sidebar) → Add Trigger
+//        Function: onEdit
+//        Event source: From spreadsheet
+//        Event type: On edit
+//        → Save (Google will ask for permissions, allow them)
+function onSheetEdit(e) {
+  var sheet = e.range.getSheet();
+  if (sheet.getName() !== SHEET_NAME) return;
+
+  var col = e.range.getColumn();
+  var row = e.range.getRow();
+  if (row < 2) return;
+
+  // Recolor row when status changes
+  if (col === STATUS_COL) {
+    applyStatusColor(sheet, row, e.range.getValue());
+  }
+
+  // Only sync columns that map to Supabase fields
+  var field = COL_TO_FIELD[col];
+  if (!field) return;
+
+  // Supabase ID is in the last column — needed to match the record
+  var supabaseId = sheet.getRange(row, HEADERS.length).getValue();
+  if (!supabaseId) return;
+
+  try {
+    var payload = {};
+    payload[field] = e.range.getValue() || null;
+    patchSupabase(supabaseId, payload);
+    writeLog(
+      "SHEETS_SYNC",
+      "",
+      "Row " + row + " [" + field + "] → " + e.range.getValue(),
+    );
+  } catch (err) {
+    writeLog("SHEETS_SYNC_ERROR", "", err.message);
+  }
 }
 
 // ── Sheet setup ───────────────────────────────────────────────────────────────
@@ -696,12 +933,10 @@ function setupSheet(sheet) {
     ACCENT_COLOR,
     SpreadsheetApp.BorderStyle.SOLID_MEDIUM,
   );
-
-  var colWidths = [
+  [
     220, 150, 220, 280, 180, 300, 440, 200, 200, 260, 220, 260, 260, 380, 380,
     360, 240, 340, 320, 320, 320, 200,
-  ];
-  colWidths.forEach(function (w, i) {
+  ].forEach(function (w, i) {
     sheet.setColumnWidth(i + 1, w);
   });
   addStatusDropdown(sheet, 2, 1000);
@@ -834,47 +1069,6 @@ function applyStatusColor(sheet, rowIndex, statusValue) {
     );
 }
 
-// ── onEdit — sync status change from Sheets back to Supabase ─────────────────
-function onEdit(e) {
-  var sheet = e.range.getSheet();
-  if (sheet.getName() !== SHEET_NAME) return;
-  if (e.range.getColumn() !== STATUS_COL) return;
-  if (e.range.getRow() < 2) return;
-
-  var row = e.range.getRow();
-  var newStatus = e.range.getValue();
-  var supabaseId = sheet.getRange(row, HEADERS.length).getValue(); // last column
-
-  applyStatusColor(sheet, row, newStatus);
-
-  if (!supabaseId) return; // no Supabase ID — skip sync
-
-  var props = PropertiesService.getScriptProperties();
-  var supabaseUrl = props.getProperty("SUPABASE_URL");
-  var supabaseKey = props.getProperty("SUPABASE_SERVICE_KEY");
-  if (!supabaseUrl || !supabaseKey) return;
-
-  try {
-    UrlFetchApp.fetch(
-      supabaseUrl + "/rest/v1/applications?id=eq." + supabaseId,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: supabaseKey,
-          Authorization: "Bearer " + supabaseKey,
-          Prefer: "return=minimal",
-        },
-        payload: JSON.stringify({ status: newStatus }),
-        muteHttpExceptions: true,
-      },
-    );
-    writeLog("SHEETS_SYNC", "", "Row " + row + " → " + newStatus);
-  } catch (err) {
-    writeLog("SHEETS_SYNC_ERROR", "", err.message);
-  }
-}
-
 // ── One-time utilities ────────────────────────────────────────────────────────
 function fixHeaderRow() {
   var ss = getSpreadsheet();
@@ -907,11 +1101,10 @@ function fixHeaderRow() {
 function resizeColumns() {
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME) || ss.getActiveSheet();
-  var colWidths = [
+  [
     220, 150, 220, 280, 180, 300, 440, 200, 200, 260, 220, 260, 260, 380, 380,
     360, 240, 340, 320, 320, 320, 200,
-  ];
-  colWidths.forEach(function (w, i) {
+  ].forEach(function (w, i) {
     sheet.setColumnWidth(i + 1, w);
   });
   SpreadsheetApp.getUi().alert("Column widths updated.");
@@ -934,11 +1127,7 @@ function migrateStatuses() {
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet || sheet.getLastRow() < 2) return;
 
-  var renames = {
-    "Hired|Resigned": "Resigned",
-    Pending: "For Interview",
-  };
-
+  var renames = { "Hired|Resigned": "Resigned", Pending: "For Interview" };
   var rows = sheet
     .getRange(2, STATUS_COL, sheet.getLastRow() - 1, 1)
     .getValues();
@@ -952,4 +1141,9 @@ function migrateStatuses() {
   });
 
   SpreadsheetApp.getUi().alert("Migration complete.");
+}
+
+function authorizeDrive() {
+  var folder = DriveApp.getRootFolder();
+  Logger.log("Drive authorized: " + folder.getName());
 }
