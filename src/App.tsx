@@ -1,13 +1,20 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Sun, Moon } from "lucide-react";
 import "./LandingPage.css";
-import logo from "./assets/Logo-NavBar.svg";
+import LogoDark from "./assets/Logo-NavBar.svg";
+import LogoWhite from "./assets/Logo-NavBar-White.svg";
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
 
   return (
     <div className="landing-root">
-      {/* Ambient background */}
       <div className="landing-glow landing-glow-1" />
       <div className="landing-glow landing-glow-2" />
       <div className="landing-grid" />
@@ -15,8 +22,22 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
-          <img src={logo} alt="Upstaff" className="landing-logo" />
+          <img
+            src={dark ? LogoWhite : LogoDark}
+            alt="Upstaff"
+            className="landing-logo"
+          />
           <div className="landing-nav-actions">
+            {/* Dark mode toggle */}
+            <button
+              className="landing-btn-ghost landing-dm-toggle"
+              onClick={() => setDark(!dark)}
+              aria-label="Toggle dark mode"
+            >
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{dark ? "Light" : "Dark"}</span>
+            </button>
+
             <button
               className="landing-btn-ghost"
               onClick={() => navigate("/auth/login")}
