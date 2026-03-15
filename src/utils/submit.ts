@@ -2,8 +2,7 @@ import { supabase } from "./supabase";
 import type { FormState } from "../types/form";
 
 async function uploadFile(file: File, folder: string): Promise<string> {
-  const ext = file.name.split(".").pop();
-  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const path = `${folder}/${file.name}`;
 
   const { error } = await supabase.storage
     .from("applicant-files")
@@ -12,27 +11,26 @@ async function uploadFile(file: File, folder: string): Promise<string> {
   if (error) throw new Error(`Upload failed: ${error.message}`);
 
   const { data } = supabase.storage.from("applicant-files").getPublicUrl(path);
-
   return data.publicUrl;
 }
 
 export async function submitApplication(
   state: FormState,
-  uploadedFiles: { resumeFiles: File[]; videoFile: File | null },
+  uploadedFiles: {
+    resumeFiles: File[];
+    otherDocFiles: File[];
+  },
 ): Promise<void> {
   const folder = `${state.firstName}_${state.lastName}_${Date.now()}`;
 
-  // Upload resume files
   const resumeUrls: string[] = [];
   for (const file of uploadedFiles.resumeFiles) {
-    const url = await uploadFile(file, folder);
-    resumeUrls.push(url);
+    resumeUrls.push(await uploadFile(file, folder));
   }
 
-  // Upload video if file was provided
-  let videoLink = state.videoLink || "";
-  if (uploadedFiles.videoFile) {
-    videoLink = await uploadFile(uploadedFiles.videoFile, folder);
+  const otherDocUrls: string[] = [];
+  for (const file of uploadedFiles.otherDocFiles) {
+    otherDocUrls.push(await uploadFile(file, folder));
   }
 
   const positions = [state.position1, state.position2, state.position3]
@@ -74,8 +72,10 @@ export async function submitApplication(
     referral_source: state.referralSource.join(", "),
     referral_code: state.referralCode || null,
     resume_link: resumeUrls.join("\n"),
+    other_docs_link: otherDocUrls.length > 0 ? otherDocUrls.join("\n") : null,
     portfolio_link: state.portfolioLink || null,
-    video_link: videoLink || null,
+    video_link: state.videoLink || null,
+    // drive_folder_link is set by Apps Script after migrating files to Drive
   });
 
   if (error) throw new Error(`Submission failed: ${error.message}`);

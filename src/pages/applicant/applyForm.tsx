@@ -14,9 +14,7 @@ import type { FormState } from "../../types/form";
 import { submitApplication } from "../../utils/submit";
 import "/src/styles/apply.css";
 
-// Set to false before going live
 const DEV_MODE = false;
-
 const TOTAL_STEPS = 5;
 
 type ArrayFields = "workSetup" | "workSchedule" | "tools" | "referralSource";
@@ -33,12 +31,11 @@ function ApplyForm() {
 
   const [uploadedFiles, setUploadedFiles] = useState<{
     resumeFiles: File[];
-    videoFile: File | null;
-  }>({ resumeFiles: [], videoFile: null });
+    otherDocFiles: File[];
+  }>({ resumeFiles: [], otherDocFiles: [] });
 
   const [fileErrors, setFileErrors] = useState<{
     resumeFiles?: string;
-    videoFile?: string;
   }>({});
 
   useEffect(() => {
@@ -112,7 +109,6 @@ function ApplyForm() {
   };
 
   const goToStep = (target: number) => {
-    // Only allow going back to completed steps
     if (target < step) {
       setStep(target);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -173,8 +169,7 @@ function ApplyForm() {
               onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
               onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
             >
-              <MoveLeft />
-              Back to Home
+              <MoveLeft /> Back to Home
             </Link>
 
             <div className="page-title">
