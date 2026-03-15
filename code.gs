@@ -140,24 +140,37 @@ function verifyToken(token) {
   return token === props.getProperty("SESSION_TOKEN");
 }
 
-// Shared helper to PATCH a Supabase record
+// ── Shared helper to PATCH a Supabase record ──────────────────────────────────
+// Logs response code so any errors are visible in Admin Logs
 function patchSupabase(supabaseId, fields) {
   var props = PropertiesService.getScriptProperties();
   var supabaseUrl = props.getProperty("SUPABASE_URL");
   var supabaseKey = props.getProperty("SUPABASE_SERVICE_KEY");
   if (!supabaseUrl || !supabaseKey || !supabaseId) return;
 
-  UrlFetchApp.fetch(supabaseUrl + "/rest/v1/applications?id=eq." + supabaseId, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: supabaseKey,
-      Authorization: "Bearer " + supabaseKey,
-      Prefer: "return=minimal",
+  var response = UrlFetchApp.fetch(
+    supabaseUrl + "/rest/v1/applications?id=eq." + supabaseId,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseKey,
+        Authorization: "Bearer " + supabaseKey,
+        Prefer: "return=minimal",
+      },
+      payload: JSON.stringify(fields),
+      muteHttpExceptions: true,
     },
-    payload: JSON.stringify(fields),
-    muteHttpExceptions: true,
-  });
+  );
+
+  var code = response.getResponseCode();
+  if (code < 200 || code >= 300) {
+    writeLog(
+      "SUPABASE_PATCH_ERROR",
+      "",
+      "HTTP " + code + " → " + response.getContentText(),
+    );
+  }
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -279,15 +292,24 @@ function handleWebhookUpdate(data) {
 
   var r = data.record;
 
-  // ── FIX: Migrate file to Drive on UPDATE if resume_link is still a Supabase URL ──
-  // This handles the common case where the INSERT webhook fires before the file
-  // upload completes, so resume_link was empty at INSERT time and only arrives
-  // on the subsequent UPDATE webhook.
+  // ── FIX: Prevent duplicate Drive uploads ─────────────────────────────────
+  // Check what's already in the sheet for resume_link (col 18).
+  // If it already has a Drive link, use it — never re-migrate.
+  // Only migrate if the sheet still has a Supabase URL (first-time upload).
+  var existingResumeLink = sheet.getRange(targetRow, 18).getValue();
+
   if (
+    existingResumeLink &&
+    existingResumeLink.indexOf("drive.google.com") !== -1
+  ) {
+    // Sheet already has a Drive link — keep it, ignore what Supabase sent
+    r.resume_link = existingResumeLink;
+  } else if (
     r.resume_link &&
     r.resume_link.indexOf("drive.google.com") === -1 &&
     r.resume_link.indexOf("supabase.co") !== -1
   ) {
+    // Not yet migrated — do it now
     try {
       var driveResumeLink = migrateFilesToDrive(
         r.full_name,
@@ -305,7 +327,8 @@ function handleWebhookUpdate(data) {
     }
   }
 
-  // Update ALL fields from Supabase into the sheet row (skip col 1 = Timestamp, col 22 = Supabase ID)
+  // Update ALL fields from Supabase into the sheet row
+  // (skip col 1 = Timestamp, col 22 = Supabase ID)
   var updatedRow = buildRowFromWebhook(r);
   for (var col = 2; col <= HEADERS.length - 1; col++) {
     sheet.getRange(targetRow, col).setValue(updatedRow[col - 1]);
@@ -689,7 +712,19 @@ function saveFilesToDrive(firstName, lastName, files) {
     [firstName, lastName].filter(Boolean).join("_") ||
     "Applicant_" + Date.now();
   var folder = parent.createFolder(folderName);
-  folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  try {
+    folder.setSharing(
+      DriveApp.Access.ANYONE_WITH_LINK,
+      DriveApp.Permission.VIEW,
+    );
+  } catch (e) {
+    writeLog(
+      "DRIVE_SHARING_WARN",
+      "",
+      "Could not set folder sharing: " + e.message,
+    );
+  }
 
   var resumeLinks = [];
   var videoLink = "";
@@ -703,10 +738,18 @@ function saveFilesToDrive(firstName, lastName, files) {
         file.name,
       );
       var saved = folder.createFile(blob);
-      saved.setSharing(
-        DriveApp.Access.ANYONE_WITH_LINK,
-        DriveApp.Permission.VIEW,
-      );
+      try {
+        saved.setSharing(
+          DriveApp.Access.ANYONE_WITH_LINK,
+          DriveApp.Permission.VIEW,
+        );
+      } catch (e) {
+        writeLog(
+          "DRIVE_SHARING_WARN",
+          "",
+          "Could not set file sharing: " + e.message,
+        );
+      }
 
       var fileUrl =
         "https://drive.google.com/file/d/" + saved.getId() + "/view";
@@ -869,7 +912,7 @@ function buildRow(d) {
 // ── onEdit — sync ANY cell change in Sheets → Supabase ───────────────────────
 // ⚠️  MUST be an INSTALLABLE TRIGGER — simple triggers cannot use UrlFetchApp!
 // Setup: Apps Script → Triggers (clock icon on left sidebar) → Add Trigger
-//        Function: onEdit
+//        Function: onSheetEdit
 //        Event source: From spreadsheet
 //        Event type: On edit
 //        → Save (Google will ask for permissions, allow them)
@@ -890,18 +933,26 @@ function onSheetEdit(e) {
   var field = COL_TO_FIELD[col];
   if (!field) return;
 
+  var newValue = e.range.getValue();
+
+  // ── Prevent sync loop ─────────────────────────────────────────────────────
+  // Webhook writes have no e.oldValue — skip them to avoid patching Supabase
+  // back with stale data and triggering another webhook → infinite loop.
+  if (e.oldValue === undefined) return;
+  if (String(newValue) === String(e.oldValue)) return;
+
   // Supabase ID is in the last column — needed to match the record
   var supabaseId = sheet.getRange(row, HEADERS.length).getValue();
   if (!supabaseId) return;
 
   try {
     var payload = {};
-    payload[field] = e.range.getValue() || null;
+    payload[field] = newValue || null;
     patchSupabase(supabaseId, payload);
     writeLog(
       "SHEETS_SYNC",
       "",
-      "Row " + row + " [" + field + "] → " + e.range.getValue(),
+      "Row " + row + " [" + field + "] → " + newValue,
     );
   } catch (err) {
     writeLog("SHEETS_SYNC_ERROR", "", err.message);

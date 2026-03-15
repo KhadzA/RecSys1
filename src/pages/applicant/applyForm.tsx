@@ -15,7 +15,7 @@ import { submitApplication } from "../../utils/submit";
 import "/src/styles/apply.css";
 
 // Set to false before going live
-const DEV_MODE = true;
+const DEV_MODE = false;
 
 const TOTAL_STEPS = 5;
 
@@ -31,11 +31,6 @@ function ApplyForm() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
-  // Apply dark class to <html> so CSS variables cascade across the entire page
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
-
   const [uploadedFiles, setUploadedFiles] = useState<{
     resumeFiles: File[];
     videoFile: File | null;
@@ -45,6 +40,10 @@ function ApplyForm() {
     resumeFiles?: string;
     videoFile?: string;
   }>({});
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  }, [dark]);
 
   const onChange = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -89,7 +88,6 @@ function ApplyForm() {
     }
     if (s === 5) {
       const uploadErrs: typeof fileErrors = {};
-
       if (uploadedFiles.resumeFiles.length === 0)
         uploadErrs.resumeFiles = "Please upload your resume / CV";
 
@@ -107,6 +105,14 @@ function ApplyForm() {
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
+  };
+
+  const goToStep = (target: number) => {
+    // Only allow going back to completed steps
+    if (target < step) {
+      setStep(target);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const nextStep = async () => {
@@ -166,6 +172,7 @@ function ApplyForm() {
               <MoveLeft />
               Back to Home
             </Link>
+
             <div className="page-title">
               Upstaff <span>Application</span> Form
             </div>
@@ -173,7 +180,7 @@ function ApplyForm() {
               Fill out the form below to apply. Takes about 5–10 minutes.
             </div>
 
-            <StepsBar current={step} />
+            <StepsBar current={step} onStepClick={goToStep} />
 
             <div className="form-card">
               {step === 1 && (

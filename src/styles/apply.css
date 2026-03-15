@@ -223,19 +223,6 @@ body::before {
 .col-span-3 {
   grid-column: span 3;
 }
-@media (max-width: 580px) {
-  .grid-2,
-  .grid-3 {
-    grid-template-columns: 1fr;
-  }
-  .col-span-2,
-  .col-span-3 {
-    grid-column: span 1;
-  }
-  .form-card {
-    padding: 24px 18px;
-  }
-}
 
 /* Fields */
 .field {
@@ -798,4 +785,88 @@ body::before {
 .dark .success-icon {
   background: rgba(123, 225, 239, 0.1);
   border-color: rgba(123, 225, 239, 0.3);
+}
+
+/* ── Mobile responsiveness additions ────────────────────────────────────────── */
+
+/* Step labels hide on very small screens */
+@media (max-width: 400px) {
+  .step-label {
+    display: none;
+  }
+  .step-circle {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  .steps {
+    margin-bottom: 24px;
+  }
+}
+
+/* Wrapper padding on mobile */
+@media (max-width: 580px) {
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .col-span-2,
+  .col-span-3 {
+    grid-column: span 1;
+  }
+  .form-card {
+    padding: 24px 18px;
+  }
+  .wrapper {
+    padding: 24px 16px 60px;
+  }
+  .form-card {
+    padding: 22px 16px;
+    border-radius: 16px;
+  }
+  .page-title {
+    font-size: clamp(22px, 7vw, 32px);
+    margin-bottom: 8px;
+  }
+  .page-sub {
+    font-size: 13.5px;
+    margin-bottom: 24px;
+  }
+  .section-heading {
+    font-size: 18px;
+  }
+  .priority-card {
+    padding: 16px 14px;
+  }
+  .doc-link-card {
+    padding: 16px 14px;
+  }
+  /* Stack form-nav on mobile */
+  .form-nav {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .btn {
+    padding: 11px 20px;
+    font-size: 13px;
+  }
+  .btn-primary {
+    padding: 11px 24px;
+  }
+  /* Make tag groups wrap better */
+  .tag-group label {
+    font-size: 12px;
+    padding: 6px 11px;
+  }
+}
+
+/* Clickable step circle hover effect */
+.step-circle[role="button"]:hover {
+  border-color: var(--accent) !important;
+  background: rgba(62, 207, 223, 0.15) !important;
+  transform: scale(1.08);
+}
+.step-circle[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

@@ -62,7 +62,7 @@ const Step5Documents: React.FC<Props> = ({
     <div className="step-section active">
       <div className="section-heading">Documents & Links</div>
       <div className="section-sub">
-        Upload your files directly — they'll be saved to a private folder in our
+        Upload your files directly — they'll be saved to a secure folder in our
         Google Drive.
       </div>
 
@@ -82,60 +82,6 @@ const Step5Documents: React.FC<Props> = ({
               file. PDF preferred.
             </div>
           </div>
-        </div>
-
-        {/* Naming guide */}
-        <div
-          style={{
-            background: "rgba(123,225,239,0.05)",
-            border: "1px solid rgba(123,225,239,0.18)",
-            borderRadius: 10,
-            padding: "13px 15px",
-            marginBottom: 14,
-            fontSize: 12.5,
-            color: "var(--muted)",
-            lineHeight: 1.8,
-          }}
-        >
-          <strong style={{ color: "var(--navy)" }}>
-            📌 Name your files before uploading:
-          </strong>
-          <br />
-          &nbsp;&nbsp;•{" "}
-          <code
-            style={{
-              background: "rgba(123,225,239,0.12)",
-              padding: "1px 6px",
-              borderRadius: 4,
-              color: "var(--text)",
-            }}
-          >
-            Firstname_Lastname_Resume.pdf
-          </code>
-          <br />
-          &nbsp;&nbsp;•{" "}
-          <code
-            style={{
-              background: "rgba(123,225,239,0.12)",
-              padding: "1px 6px",
-              borderRadius: 4,
-              color: "var(--text)",
-            }}
-          >
-            Firstname_Lastname_Diploma.pdf
-          </code>
-          <br />
-          &nbsp;&nbsp;•{" "}
-          <code
-            style={{
-              background: "rgba(123,225,239,0.12)",
-              padding: "1px 6px",
-              borderRadius: 4,
-              color: "var(--text)",
-            }}
-          >
-            Firstname_Lastname_CertName.pdf
-          </code>
         </div>
 
         {/* Uploaded file list */}
@@ -290,8 +236,6 @@ const Step5Documents: React.FC<Props> = ({
       </div>
 
       {/* Video */}
-
-      {/* Uploaded video badge */}
       <div className="doc-link-card">
         <div className="doc-link-header">
           <span className="doc-link-icon">

@@ -5,7 +5,7 @@ import TopBar from "./TopBar";
 import { logout } from "../utils/auth";
 import "/src/styles/apply.css";
 import "./AdminLayout.css";
-// woah
+
 interface Props {
   children: React.ReactNode;
 }
@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: Props) {
     {
       to: "/pages/admin/jobs",
       icon: <Briefcase size={18} />,
-      label: "Add Jobs",
+      label: "Jobs",
     },
     {
       to: "/pages/admin/settings",
@@ -49,7 +49,7 @@ export default function AdminLayout({ children }: Props) {
       <TopBar dark={dark} onToggleDark={() => setDark(!dark)} />
 
       <div className="admin-body">
-        {/* Side nav */}
+        {/* ── Side nav (tablet + desktop) ── */}
         <aside className={`admin-sidenav ${collapsed ? "collapsed" : ""}`}>
           <button
             className="sidenav-toggle"
@@ -82,8 +82,33 @@ export default function AdminLayout({ children }: Props) {
           </button>
         </aside>
 
-        {/* Main content */}
-        <main className="admin-main">{children}</main>
+        {/* ── Main content ── */}
+        <main className={`admin-main ${collapsed ? "collapsed" : ""}`}>
+          {children}
+        </main>
+
+        {/* ── Bottom nav (mobile only) ── */}
+        <nav className="admin-bottom-nav">
+          {navItems.map(({ to, icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `bottom-nav-item ${isActive ? "active" : ""}`
+              }
+            >
+              {icon}
+              <span>{label}</span>
+            </NavLink>
+          ))}
+          <button
+            className="bottom-nav-item bottom-nav-logout"
+            onClick={handleLogout}
+          >
+            <LogOut size={18} />
+            <span>Logout</span>
+          </button>
+        </nav>
       </div>
     </div>
   );
