@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Briefcase, LogOut, Menu, X, Cog } from "lucide-react";
 import TopBar from "./TopBar";
 import { logout } from "../utils/auth";
+import { getDarkMode, setDarkMode } from "../utils/darkmode";
+
 import "/src/styles/apply.css";
 import "./AdminLayout.css";
 
@@ -11,12 +13,12 @@ interface Props {
 }
 
 export default function AdminLayout({ children }: Props) {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => getDarkMode());
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
+    setDarkMode(dark);
   }, [dark]);
 
   const handleLogout = () => {

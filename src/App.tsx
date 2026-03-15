@@ -4,13 +4,14 @@ import { Sun, Moon } from "lucide-react";
 import "./LandingPage.css";
 import LogoDark from "./assets/Logo-NavBar.svg";
 import LogoWhite from "./assets/Logo-NavBar-White.svg";
+import { getDarkMode, setDarkMode } from "./utils/darkmode";
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => getDarkMode());
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
+    setDarkMode(dark);
   }, [dark]);
 
   return (

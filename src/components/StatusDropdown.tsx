@@ -33,16 +33,12 @@ export default function StatusDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSelect = (status: string) => {
-    onChange(status);
-    setIsOpen(false);
-  };
-
   return (
     <div
       ref={dropdownRef}
       style={{ position: "relative", display: "inline-block" }}
     >
+      {/* ── Trigger button ── */}
       <button
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -52,7 +48,9 @@ export default function StatusDropdown({
           gap: 8,
           padding: "8px 14px",
           borderRadius: 24,
-          background: currentStyle.bg,
+          // Use a semi-transparent version of the status color so it works on
+          // both light and dark backgrounds instead of a solid light color
+          background: currentStyle.bg + "cc",
           color: currentStyle.color,
           border: `1.5px solid ${currentStyle.color}60`,
           cursor: disabled ? "not-allowed" : "pointer",
@@ -86,16 +84,18 @@ export default function StatusDropdown({
         />
       </button>
 
+      {/* ── Dropdown list ── */}
       {isOpen && (
         <div
           style={{
             position: "absolute",
             top: "calc(100% + 6px)",
             left: 0,
+            // Use CSS variables so it respects dark mode automatically
             backgroundColor: "var(--card)",
             border: "1px solid var(--border)",
             borderRadius: 12,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
             zIndex: 1000,
             minWidth: 220,
             overflow: "hidden",
@@ -107,12 +107,16 @@ export default function StatusDropdown({
             return (
               <button
                 key={status}
-                onClick={() => handleSelect(status)}
+                onClick={() => {
+                  onChange(status);
+                  setIsOpen(false);
+                }}
                 style={{
                   width: "100%",
                   padding: "9px 14px",
                   textAlign: "left",
-                  backgroundColor: isSelected ? style.bg : "transparent",
+                  // Semi-transparent bg so it doesn't blind on dark mode
+                  backgroundColor: isSelected ? style.bg + "99" : "transparent",
                   color: style.color,
                   border: "none",
                   cursor: "pointer",
@@ -132,7 +136,7 @@ export default function StatusDropdown({
                   if (!isSelected)
                     (
                       e.currentTarget as HTMLButtonElement
-                    ).style.backgroundColor = style.bg;
+                    ).style.backgroundColor = style.bg + "55";
                 }}
                 onMouseLeave={(e) => {
                   if (!isSelected)

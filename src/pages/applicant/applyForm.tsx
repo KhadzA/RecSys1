@@ -12,6 +12,7 @@ import Step5Documents from "../../components/steps/Step5Documents";
 import { initialFormState } from "../../types/form";
 import type { FormState } from "../../types/form";
 import { submitApplication } from "../../utils/submit";
+import { getDarkMode, setDarkMode } from "../../utils/darkmode";
 import "/src/styles/apply.css";
 
 const DEV_MODE = false;
@@ -20,7 +21,7 @@ const TOTAL_STEPS = 5;
 type ArrayFields = "workSetup" | "workSchedule" | "tools" | "referralSource";
 
 function ApplyForm() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => getDarkMode());
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialFormState);
   const [errors, setErrors] = useState<
@@ -39,7 +40,7 @@ function ApplyForm() {
   }>({});
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
+    setDarkMode(dark);
   }, [dark]);
 
   const onChange = (field: keyof FormState, value: string) => {

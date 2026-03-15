@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, MoveLeft } from "lucide-react";
 import TopBar from "../components/TopBar";
 import { loginAdmin } from "../utils/auth";
+import { getDarkMode, setDarkMode } from "../utils/darkmode";
 
 import "/src/styles/apply.css";
 
@@ -12,11 +13,11 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => getDarkMode());
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
+    setDarkMode(dark);
   }, [dark]);
 
   const handleLogin = async (e: React.FormEvent) => {
