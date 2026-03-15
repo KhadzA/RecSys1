@@ -82,6 +82,10 @@ function ApplyForm() {
       if (!form.position1)
         errs.position1 = "Please select your 1st choice position";
     }
+    if (s === 3) {
+      if (!form.educationLevel)
+        errs.educationLevel = "Please select your education level";
+    }
     if (s === 4) {
       if (!form.slot1Date) errs.slot1Date = "Please pick a date for Slot 1";
       if (!form.slot1Time) errs.slot1Time = "Please pick a time for Slot 1";
@@ -201,6 +205,7 @@ function ApplyForm() {
               {step === 3 && (
                 <Step3Experience
                   state={form}
+                  errors={errors}
                   onChange={onChange}
                   onToggleArray={
                     onToggleArray as (field: "tools", value: string) => void

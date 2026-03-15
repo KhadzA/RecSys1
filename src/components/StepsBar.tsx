@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 interface Props {
   current: number;
   onStepClick?: (step: number) => void;
@@ -36,7 +38,7 @@ export default function StepsBar({ current, onStepClick }: Props) {
                 }
               }}
             >
-              {isCompleted ? "✓" : stepNum}
+              {isCompleted ? <Check size={14} strokeWidth={2.5} /> : stepNum}
             </div>
             <div className="step-label">{label}</div>
           </div>

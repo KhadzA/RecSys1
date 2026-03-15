@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Home } from "lucide-react";
+import { Home, CheckCircle } from "lucide-react";
 
 const SuccessScreen: React.FC = () => (
   <div className="success-screen show">
@@ -8,7 +8,9 @@ const SuccessScreen: React.FC = () => (
       className="form-card"
       style={{ textAlign: "center", padding: "48px 32px" }}
     >
-      <div className="success-icon">✓</div>
+      <div className="success-icon">
+        <CheckCircle size={40} strokeWidth={1.5} />
+      </div>
       <div className="success-title">Application Submitted!</div>
       <div className="success-sub">
         Thank you for applying to UpStaff!

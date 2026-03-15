@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { ChevronDown, TriangleAlert, X } from "lucide-react";
 import type { FormState } from "../../types/form";
 import { fetchJobs } from "../../utils/auth";
 
@@ -10,6 +11,16 @@ const SCHEDULES = [
   "Weekends Only",
   "Flexible",
 ];
+
+const chevronStyle: React.CSSProperties = {
+  position: "absolute",
+  right: "0.75rem",
+  top: "50%",
+  transform: "translateY(-50%)",
+  pointerEvents: "none",
+  color: "var(--muted)",
+  opacity: 0.5,
+};
 
 interface Props {
   state: FormState;
@@ -75,20 +86,7 @@ const Step2Position: React.FC<Props> = ({
               <option key={p}>{p}</option>
             ))}
           </select>
-          <div
-            style={{
-              position: "absolute",
-              right: "0.85rem",
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-              color: "var(--muted)",
-              opacity: 0.5,
-              fontSize: 11,
-            }}
-          >
-            ▼
-          </div>
+          <ChevronDown size={14} style={chevronStyle} />
         </div>
         {error && <div className="field-error">{error}</div>}
         {isOptional && value && (
@@ -104,12 +102,14 @@ const Step2Position: React.FC<Props> = ({
               cursor: "pointer",
               padding: 0,
               opacity: 0.65,
-              textDecoration: "underline",
-              textUnderlineOffset: 2,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
               fontFamily: "Inter, sans-serif",
             }}
           >
-            ✕ Clear selection
+            <X size={11} strokeWidth={2.5} />
+            Clear selection
           </button>
         )}
       </div>
@@ -158,20 +158,7 @@ const Step2Position: React.FC<Props> = ({
                 <option>Contractual</option>
                 <option>Project-Based</option>
               </select>
-              <div
-                style={{
-                  position: "absolute",
-                  right: "0.85rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                  color: "var(--muted)",
-                  opacity: 0.5,
-                  fontSize: 11,
-                }}
-              >
-                ▼
-              </div>
+              <ChevronDown size={14} style={chevronStyle} />
             </div>
           </div>
         </div>
@@ -208,9 +195,13 @@ const Step2Position: React.FC<Props> = ({
             padding: "8px 12px",
             borderRadius: 8,
             border: "1px solid rgba(217,53,53,0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
           }}
         >
-          ⚠ Each position choice must be different.
+          <TriangleAlert size={14} strokeWidth={2} style={{ flexShrink: 0 }} />
+          Each position choice must be different.
         </div>
       )}
 

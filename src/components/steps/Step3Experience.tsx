@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { GraduationCap, Wrench, MonitorSmartphone } from "lucide-react";
+import {
+  GraduationCap,
+  Wrench,
+  MonitorSmartphone,
+  X,
+  ChevronDown,
+} from "lucide-react";
 import type { FormState } from "../../types/form";
 
 const TOOLS = [
@@ -19,6 +25,7 @@ const TOOLS = [
 
 interface Props {
   state: FormState;
+  errors: Partial<Record<keyof FormState, string>>;
   onChange: (field: keyof FormState, value: string) => void;
   onToggleArray: (field: "tools", value: string) => void;
   onSetSkills: (skills: string[]) => void;
@@ -26,6 +33,7 @@ interface Props {
 
 const Step3Experience: React.FC<Props> = ({
   state,
+  errors,
   onChange,
   onToggleArray,
   onSetSkills,
@@ -68,11 +76,14 @@ const Step3Experience: React.FC<Props> = ({
       <div className="sub-desc">Your highest educational attainment.</div>
       <div className="grid-2" style={{ marginBottom: 26 }}>
         <div className="field">
-          <label>Education Level</label>
+          <label>
+            Education Level <span className="req">*</span>
+          </label>
           <div style={{ position: "relative" }}>
             <select
               value={state.educationLevel}
               onChange={(e) => onChange("educationLevel", e.target.value)}
+              className={errors.educationLevel ? "input-error" : ""}
               style={{
                 paddingRight: "2.5rem",
                 appearance: "none",
@@ -86,21 +97,22 @@ const Step3Experience: React.FC<Props> = ({
               <option>College Graduate</option>
               <option>Post Graduate</option>
             </select>
-            <div
+            <ChevronDown
+              size={14}
               style={{
                 position: "absolute",
-                right: "0.85rem",
+                right: "0.75rem",
                 top: "50%",
                 transform: "translateY(-50%)",
                 pointerEvents: "none",
                 color: "var(--muted)",
                 opacity: 0.5,
-                fontSize: 11,
               }}
-            >
-              ▼
-            </div>
+            />
           </div>
+          {errors.educationLevel && (
+            <div className="field-error">{errors.educationLevel}</div>
+          )}
         </div>
         <div className="field">
           <label>School / Institution</label>
@@ -147,9 +159,13 @@ const Step3Experience: React.FC<Props> = ({
         >
           {state.skills.map((s, i) => (
             <span key={i} className="skill-tag">
-              {s}{" "}
-              <span className="del" onClick={() => removeSkill(i)}>
-                ×
+              {s}
+              <span
+                className="del"
+                onClick={() => removeSkill(i)}
+                style={{ display: "flex", alignItems: "center" }}
+              >
+                <X size={11} strokeWidth={2.5} />
               </span>
             </span>
           ))}
