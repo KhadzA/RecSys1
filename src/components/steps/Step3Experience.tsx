@@ -69,17 +69,38 @@ const Step3Experience: React.FC<Props> = ({
       <div className="grid-2" style={{ marginBottom: 26 }}>
         <div className="field">
           <label>Education Level</label>
-          <select
-            value={state.educationLevel}
-            onChange={(e) => onChange("educationLevel", e.target.value)}
-          >
-            <option value="">Select level</option>
-            <option>High School Graduate</option>
-            <option>Vocational / TESDA</option>
-            <option>College Undergraduate</option>
-            <option>College Graduate</option>
-            <option>Post Graduate</option>
-          </select>
+          <div style={{ position: "relative" }}>
+            <select
+              value={state.educationLevel}
+              onChange={(e) => onChange("educationLevel", e.target.value)}
+              style={{
+                paddingRight: "2.5rem",
+                appearance: "none",
+                WebkitAppearance: "none",
+              }}
+            >
+              <option value="">Select level</option>
+              <option>High School Graduate</option>
+              <option>Vocational / TESDA</option>
+              <option>College Undergraduate</option>
+              <option>College Graduate</option>
+              <option>Post Graduate</option>
+            </select>
+            <div
+              style={{
+                position: "absolute",
+                right: "0.85rem",
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+                color: "var(--muted)",
+                opacity: 0.5,
+                fontSize: 11,
+              }}
+            >
+              ▼
+            </div>
+          </div>
         </div>
         <div className="field">
           <label>School / Institution</label>
